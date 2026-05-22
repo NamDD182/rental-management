@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const roomSchema = new mongoose.Schema({
-  roomNumber:{type: String, required: true, unique: true, trim: true},
+  roomNumber:{type: Number, required: true, unique: true, trim: true},
   floor:     {type: Number, required: true},
   area:      {type: Number, required: true}, //m2
   price:     {type: Number, required: true}, // giá niêm yết từng tháng

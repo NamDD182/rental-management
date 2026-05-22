@@ -11,7 +11,8 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/api/auth", require("./routes/auth"));
+app.use("/auth", require("./routes/auth"));
+app.use("/rooms", require("./routes/roomRouters"));
 
 app.get("/test", (req, res) => {
   res.send("API OK");
