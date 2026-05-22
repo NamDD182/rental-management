@@ -33,14 +33,13 @@ const invoiceSchema = new mongoose.Schema({
   }
 );
 
-invoiceSchema.pre("save", function (next) {
+invoiceSchema.pre("save", async function () {
   this.electricAmount = (this.electricNew - this.electricOld) * this.electricPrice;
   this.waterAmount    = this.currentPeople * this.waterPerPerson;
   this.totalAmount    = this.rentAmount
                       + this.electricAmount
                       + this.waterAmount
                       + this.serviceAmount;
-  next();
 });
 
 // Chặn đúng: cùng hợp đồng, cùng tháng, cùng năm

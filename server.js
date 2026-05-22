@@ -14,6 +14,7 @@ app.use("/auth", require("./routes/auth"));
 app.use("/rooms", require("./routes/roomRouters"));
 app.use("/tenants", require("./routes/tenants"));
 app.use("/contracts", require("./routes/contract"));
+app.use("/invoices", require("./routes/invoice"));
 
 app.get("/test", (req, res) => {
   res.send("API OK");
