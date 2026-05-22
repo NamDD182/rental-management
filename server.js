@@ -9,6 +9,10 @@ connectDB();
 
 const app = express();
 
+app.use(express.json());
+
+app.use("/api/auth", require("./routes/auth"));
+
 app.get("/test", (req, res) => {
   res.send("API OK");
 });
