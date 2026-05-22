@@ -10,10 +10,10 @@ const {
 } = require("../controllers/roomController");
 
 
-router.get("/", auth, getAllRooms);
-router.get("/:id", auth, getRoomById);
-router.post("/", auth, createRoom);
-router.put("/:id", auth, updateRoom);
-router.delete("/:id", auth, deleteRoom);
+router.get("/",      auth, getAllRooms);
+router.get("/:id",   auth, getRoomById);
+router.post("/",     auth, createRoom);
+router.put("/:id",   auth, updateRoom);
+router.delete("/:id",auth, deleteRoom);
 
 module.exports = router;

@@ -5,7 +5,7 @@ const tenantSchema = new mongoose.Schema({
     phone:         {type: String, required:true, trim: true},
 
     cccd:          {type: String, required: true, unique: true, trim: true},
-    cccdDate:      {type: Date, required: true},
+    cccdDate:      {type: Date},
     cccdPlace:     {type: String, required: true},
     
     dob:           {type: Date},
