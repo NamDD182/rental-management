@@ -81,6 +81,30 @@ export default function ContractsPage() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
 
+  const [openRenewModal, setOpenRenewModal] = useState(false);
+  const [renewEndDate, setRenewEndDate] = useState("");
+
+  const handleRenew = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!selectedContract) return;
+  try {
+    setSubmitting(true);
+    setError("");
+    await api.put(`/contracts/${selectedContract._id}`, {
+      endDate: renewEndDate,
+    });
+    setOpenRenewModal(false);
+    setRenewEndDate("");
+    setSelectedContract(null);
+    showToast("Gia hạn hợp đồng thành công!");
+    fetchData();
+  } catch (err: any) {
+    setError(err?.response?.data?.message || "Có lỗi xảy ra");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
   const [selectedContract, setSelectedContract] = useState<Contract | null>(
     null,
   );
@@ -530,19 +554,65 @@ export default function ContractsPage() {
               </div>
 
               {selectedContract.status === "active" && (
-                <Button
-                  className="w-full border-red-200 text-red-500 hover:bg-red-50"
-                  variant="outline"
-                  onClick={() => handleEndContract(selectedContract)}
-                >
-                  Kết thúc hợp đồng
-                </Button>
-              )}
+  <div className="flex gap-3">
+    <Button
+      variant="outline"
+      className="flex-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+      onClick={() => {
+        setOpenRenewModal(true);
+        setRenewEndDate(selectedContract.endDate?.slice(0, 10) || "");
+        setError("");
+      }}
+    >
+      Gia hạn
+    </Button>
+    <Button
+      variant="outline"
+      className="flex-1 border-red-200 text-red-500 hover:bg-red-50"
+      onClick={() => handleEndContract(selectedContract)}
+    >
+      Kết thúc
+    </Button>
+  </div>
+)}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
+<Dialog open={openRenewModal} onOpenChange={(open) => {
+  setOpenRenewModal(open);
+  if (!open) setError("");
+}}>
+  <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
+    <DialogHeader>
+      <DialogTitle>Gia hạn hợp đồng</DialogTitle>
+    </DialogHeader>
+    <form onSubmit={handleRenew} className="space-y-4 mt-2">
+      <div className="space-y-1.5">
+        <Label>Ngày kết thúc mới</Label>
+        <Input
+          type="date"
+          value={renewEndDate}
+          onChange={(e) => setRenewEndDate(e.target.value)}
+          required
+        />
+      </div>
+      {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+      <div className="flex gap-3 pt-2">
+        <Button type="button" variant="outline" className="flex-1"
+          onClick={() => setOpenRenewModal(false)}>
+          Hủy
+        </Button>
+        <Button type="submit"
+          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+          disabled={submitting}>
+          {submitting ? "Đang lưu..." : "Gia hạn"}
+        </Button>
+      </div>
+    </form>
+  </DialogContent>
+</Dialog>
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-medium">

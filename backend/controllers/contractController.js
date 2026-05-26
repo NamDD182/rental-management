@@ -31,19 +31,16 @@ const getContractById = async (req, res) => {
 // POST /contracts — tạo hợp đồng mới
 const createContract = async (req, res) => {
   try {
-    const { roomId, tenantId, startDate, rentPrice, deposit } = req.body;
+    const { roomId, tenantId, startDate, endDate, rentPrice, deposit, note } = req.body;
 
-    // Kiểm tra phòng tồn tại không
     const room = await Room.findById(roomId);
     if (!room) return res.status(404).json({ message: "Không tìm thấy phòng" });
 
-    // Kiểm tra phòng đang có hợp đồng active chưa
     const existingContract = await Contract.findOne({ roomId, status: "active" });
     if (existingContract) {
       return res.status(400).json({ message: "Phòng đang có hợp đồng active" });
     }
 
-    // Kiểm tra tenant tồn tại không
     const tenant = await Tenant.findById(tenantId);
     if (!tenant) return res.status(404).json({ message: "Không tìm thấy khách thuê" });
 
@@ -51,11 +48,12 @@ const createContract = async (req, res) => {
       roomId,
       tenantId,
       startDate,
-      rentPrice: rentPrice || room.price, // mặc định lấy giá phòng
-      deposit: deposit || 0,
+      endDate:   endDate || null,   // ← thêm
+      rentPrice: rentPrice || room.price,
+      deposit:   deposit || 0,
+      note:      note || "",        // ← thêm
     });
 
-    // Cập nhật trạng thái phòng
     await Room.findByIdAndUpdate(roomId, { status: "occupied" });
 
     res.status(201).json(contract);

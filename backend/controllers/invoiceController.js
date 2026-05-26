@@ -10,7 +10,10 @@ const getAllInvoices = async (req, res) => {
       .populate("roomId", "roomNumber floor")
       .populate({
         path: "contractId",
-        populate: { path: "tenantId", select: "fullName phone" },
+        populate: [
+          { path: "roomId",   select: "roomNumber floor" },
+          { path: "tenantId", select: "fullName phone" },
+        ],
       })
       .sort({ year: -1, month: -1 });
     res.json(invoices);
@@ -82,8 +85,9 @@ const payInvoice = async (req, res) => {
       return res.status(400).json({ message: "Hóa đơn đã thanh toán rồi" });
     }
 
-    invoice.status = "paid";
-    invoice.paidAt = new Date();
+    invoice.status        = "paid";
+    invoice.paidAt        = new Date();
+    invoice.paymentMethod = req.body.paymentMethod || "cash"; // ← thêm
     await invoice.save();
 
     res.json({ message: "Thanh toán thành công", invoice });
