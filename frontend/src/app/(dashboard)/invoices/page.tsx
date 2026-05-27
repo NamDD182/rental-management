@@ -43,7 +43,8 @@ interface Invoice {
   vehicleFee: number;
   totalAmount: number;
   status: "unpaid" | "paid" | "overdue";
-  paymentMethod: "cash" | "bank_transfer" | "qr" | null;
+  paymentMethod: "cash" | "bank_transfer" | null;
+  transferImageUrl: string | null;
   paidAt: string | null;
   note: string;
 }
@@ -104,6 +105,10 @@ export default function InvoicesPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
 
   const [transferImage, setTransferImage] = useState<File | null>(null);
+  const [transferPreview, setTransferPreview] = useState<string>("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const [viewImage, setViewImage] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -187,16 +192,39 @@ export default function InvoicesPage() {
     if (!payingInvoice) return;
     try {
       setSubmitting(true);
-      await api.put(`/invoices/${payingInvoice._id}/pay`, { paymentMethod });
+
+      let transferImageUrl = null;
+
+      // Upload ảnh nếu có
+      if (paymentMethod === "bank_transfer" && transferImage) {
+        setUploadingImage(true);
+        const formData = new FormData();
+        formData.append("image", transferImage);
+        const uploadRes = await api.post("/upload/image", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        transferImageUrl = uploadRes.data.url;
+        setUploadingImage(false);
+      }
+
+      await api.put(`/invoices/${payingInvoice._id}/pay`, {
+        paymentMethod,
+        transferImageUrl,
+      });
+
       setOpenPayModal(false);
       setPayingInvoice(null);
       setSelectedInvoice(null);
+      setTransferImage(null);
+      setTransferPreview("");
+      setPaymentMethod("cash");
       showToast("Đã thu tiền thành công!");
       fetchData();
     } catch (err: any) {
       alert(err?.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -596,7 +624,7 @@ export default function InvoicesPage() {
 
       {/* Modal chi tiết hóa đơn */}
       <Dialog
-        open={!!selectedInvoice}
+        open={!!selectedInvoice && !viewImage}
         onOpenChange={(open) => {
           if (!open) setSelectedInvoice(null);
         }}
@@ -618,11 +646,11 @@ export default function InvoicesPage() {
                 {[
                   { label: "Tiền phòng", value: selectedInvoice.rentAmount },
                   {
-                    label: `Tiền điện (${selectedInvoice.electricNew - selectedInvoice.electricOld} kWh × ${selectedInvoice.electricPrice.toLocaleString("vi-VN")}đ)`,
+                    label: `Điện (${selectedInvoice.electricNew - selectedInvoice.electricOld} kWh × ${selectedInvoice.electricPrice.toLocaleString("vi-VN")}đ)`,
                     value: selectedInvoice.electricAmount,
                   },
                   {
-                    label: `Tiền nước (${selectedInvoice.currentPeople} người × ${selectedInvoice.waterPerPerson.toLocaleString("vi-VN")}đ)`,
+                    label: `Nước (${selectedInvoice.currentPeople} người × ${selectedInvoice.waterPerPerson.toLocaleString("vi-VN")}đ)`,
                     value: selectedInvoice.waterAmount,
                   },
                   {
@@ -633,10 +661,12 @@ export default function InvoicesPage() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="flex justify-between text-sm"
+                    className="flex justify-between text-sm gap-4"
                   >
-                    <span className="text-slate-500">{item.label}</span>
-                    <span className="font-medium text-slate-700">
+                    <span className="text-slate-500 whitespace-nowrap">
+                      {item.label}
+                    </span>
+                    <span className="font-medium text-slate-700 whitespace-nowrap">
                       {item.value.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
@@ -670,6 +700,24 @@ export default function InvoicesPage() {
                 )}
               </div>
 
+              {/* Ảnh chuyển khoản — nằm dưới, chiều rộng vừa phải */}
+              {selectedInvoice.transferImageUrl && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-slate-400 font-medium">
+                    Ảnh chuyển khoản
+                  </p>
+                  <img
+                    src={selectedInvoice.transferImageUrl}
+                    className="w-full max-h-52 rounded-xl object-contain border border-slate-100 bg-slate-50 cursor-zoom-in hover:opacity-90 transition-opacity"
+                    alt="Ảnh chuyển khoản"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewImage(selectedInvoice.transferImageUrl!);
+                    }}
+                  />
+                </div>
+              )}
+
               {selectedInvoice.note && (
                 <p className="text-sm text-slate-500 bg-slate-50 px-3 py-2 rounded-xl">
                   {selectedInvoice.note}
@@ -697,7 +745,11 @@ export default function InvoicesPage() {
         open={openPayModal}
         onOpenChange={(open) => {
           setOpenPayModal(open);
-          if (!open) setPaymentMethod("cash");
+          if (!open) {
+            setPaymentMethod("cash");
+            setTransferImage(null);
+            setTransferPreview("");
+          }
         }}
       >
         <DialogContent
@@ -736,7 +788,7 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 <Label>Phương thức thanh toán</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -746,7 +798,13 @@ export default function InvoicesPage() {
                     <button
                       key={m.value}
                       type="button"
-                      onClick={() => setPaymentMethod(m.value)}
+                      onClick={() => {
+                        setPaymentMethod(m.value);
+                        if (m.value === "cash") {
+                          setTransferImage(null);
+                          setTransferPreview("");
+                        }
+                      }}
                       className={`py-2.5 px-4 rounded-xl text-sm font-medium border transition-all ${
                         paymentMethod === m.value
                           ? "bg-indigo-600 text-white border-indigo-600"
@@ -756,58 +814,65 @@ export default function InvoicesPage() {
                       {m.label}
                     </button>
                   ))}
-
-                  
                 </div>
-              </div>
-              <div>
-                {/* Khu vực upload ảnh khi chọn chuyển khoản */}
-                  {paymentMethod === "bank_transfer" && (
-                    <div
-                      className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-300 transition-all"
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const file = e.dataTransfer.files[0];
-                        if (file) setTransferImage(file);
-                      }}
-                      onClick={() =>
-                        document.getElementById("transfer-upload")?.click()
+
+                {/* Upload ảnh chuyển khoản */}
+                {paymentMethod === "bank_transfer" && (
+                  <div
+                    className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+                      transferPreview
+                        ? "border-indigo-300 bg-indigo-50"
+                        : "border-slate-200 hover:border-indigo-300"
+                    }`}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith("image/")) {
+                        setTransferImage(file);
+                        setTransferPreview(URL.createObjectURL(file));
                       }
-                    >
-                      {transferImage ? (
-                        <div className="space-y-2">
-                          <img
-                            src={URL.createObjectURL(transferImage)}
-                            className="max-h-40 mx-auto rounded-lg object-contain"
-                            alt="Ảnh chuyển khoản"
-                          />
-                          <p className="text-xs text-slate-400">
-                            {transferImage.name}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-slate-400">
-                            Kéo thả hoặc click để upload ảnh chuyển khoản
-                          </p>
-                          <p className="text-xs text-slate-300">
-                            PNG, JPG tối đa 5MB
-                          </p>
-                        </div>
-                      )}
-                      <input
-                        id="transfer-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setTransferImage(file);
-                        }}
-                      />
-                    </div>
-                  )}
+                    }}
+                    onClick={() =>
+                      document.getElementById("transfer-upload")?.click()
+                    }
+                  >
+                    {transferPreview ? (
+                      <div className="space-y-2">
+                        <img
+                          src={transferPreview}
+                          className="max-h-40 mx-auto rounded-lg object-contain"
+                          alt="Ảnh chuyển khoản"
+                        />
+                        <p className="text-xs text-slate-400">
+                          Click để đổi ảnh
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 py-2">
+                        <p className="text-sm font-medium text-slate-500">
+                          Kéo thả hoặc click để upload
+                        </p>
+                        <p className="text-xs text-slate-300">
+                          Ảnh xác nhận chuyển khoản • PNG, JPG tối đa 5MB
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      id="transfer-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setTransferImage(file);
+                          setTransferPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -824,7 +889,11 @@ export default function InvoicesPage() {
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                   disabled={submitting}
                 >
-                  {submitting ? "Đang xử lý..." : "Xác nhận thu"}
+                  {uploadingImage
+                    ? "Đang upload ảnh..."
+                    : submitting
+                      ? "Đang xử lý..."
+                      : "Xác nhận thu"}
                 </Button>
               </div>
             </form>
@@ -836,6 +905,26 @@ export default function InvoicesPage() {
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-medium">
           ✓ {toast}
+        </div>
+      )}
+
+      {viewImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setViewImage("")}
+        >
+          <img
+            src={viewImage}
+            className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
+            alt="Ảnh chuyển khoản"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-sm bg-black/40 px-3 py-1.5 rounded-lg"
+            onClick={() => setViewImage("")}
+          >
+            ✕ Đóng
+          </button>
         </div>
       )}
     </div>

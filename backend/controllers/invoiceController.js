@@ -85,9 +85,10 @@ const payInvoice = async (req, res) => {
       return res.status(400).json({ message: "Hóa đơn đã thanh toán rồi" });
     }
 
-    invoice.status        = "paid";
-    invoice.paidAt        = new Date();
-    invoice.paymentMethod = req.body.paymentMethod || "cash"; // ← thêm
+    invoice.status           = "paid";
+    invoice.paidAt           = new Date();
+    invoice.paymentMethod    = req.body.paymentMethod || "cash";
+    invoice.transferImageUrl = req.body.transferImageUrl || null; // ← thêm
     await invoice.save();
 
     res.json({ message: "Thanh toán thành công", invoice });

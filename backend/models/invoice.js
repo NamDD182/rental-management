@@ -33,7 +33,8 @@ const invoiceSchema = new mongoose.Schema({
     enum: ["unpaid", "paid", "overdue"],
     default: "unpaid",
   },
-  paymentMethod: { type: String, enum: ["cash", "bank_transfer", "qr"], default: null },
+  paymentMethod: { type: String, enum: ["cash", "bank_transfer"], default: null },
+  transferImageUrl: { type: String, default: null }, // ảnh chuyển khoản
   paidAt:        { type: Date, default: null },
   note:          { type: String, default: "" },
 },
