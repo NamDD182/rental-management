@@ -75,6 +75,14 @@ const deleteRoom = async (req, res) => {
     if (room.status === "occupied") {
       return res.status(400).json({ message: "Phòng đang có người ở, không thể xóa" });
     }
+
+    // Kiểm tra có hóa đơn không
+    const Invoice  = require("../models/invoice");
+    const hasInvoice = await Invoice.findOne({ roomId: room._id });
+    if (hasInvoice) {
+      return res.status(400).json({ message: "Phòng đã có lịch sử hóa đơn, không thể xóa" });
+    }
+
     await room.deleteOne();
     res.json({ message: "Xóa phòng thành công!" });
   } catch (error) {

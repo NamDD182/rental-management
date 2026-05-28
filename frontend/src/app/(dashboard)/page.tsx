@@ -1,18 +1,18 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { DoorOpen, Users, Receipt, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Stats {
-  totalRooms: number;
-  occupiedRooms: number;
-  emptyRooms: number;
-  totalTenants: number;
-  unpaidAmount: number;
-  unpaidCount: number;
-}
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface Invoice {
   _id: string;
@@ -34,13 +34,22 @@ interface Contract {
   status: string;
 }
 
+interface ChartData {
+  name: string;
+  doanhThu: number;
+  chuaThu: number;
+}
+
 export default function DashboardPage() {
-  const [stats,     setStats]     = useState<Stats | null>(null);
+  const router = useRouter();
+  const [stats,     setStats]     = useState<any>(null);
   const [unpaid,    setUnpaid]    = useState<Invoice[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [paying,    setPaying]    = useState<string | null>(null);
   const [toast,     setToast]     = useState("");
+  const [overdueContracts, setOverdueContracts] = useState<Contract[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -55,14 +64,13 @@ export default function DashboardPage() {
         api.get("/contracts"),
       ]);
 
-       console.log("contracts:", contractsRes.data);
-
       const rooms     = roomsRes.data;
       const tenants   = tenantsRes.data;
       const invoices  = invoicesRes.data;
       const contracts = contractsRes.data;
 
-      // Tính stats
+      const now = new Date();
+
       setStats({
         totalRooms:    rooms.length,
         occupiedRooms: rooms.filter((r: any) => r.status === "occupied").length,
@@ -74,25 +82,58 @@ export default function DashboardPage() {
         unpaidCount: invoices.filter((i: any) => i.status === "unpaid").length,
       });
 
-      // Hóa đơn chưa thu
       setUnpaid(invoices.filter((i: any) => i.status === "unpaid"));
 
-      // Hợp đồng sắp hết hạn (trong 30 ngày)
-      const now = new Date();
-      const soon = contracts.filter((c: any) => {
-        if (!c.endDate || c.status !== "active") return false;
-        const end  = new Date(c.endDate);
-        const diff = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-        return diff >= 0 && diff <= 30;
+      // Hợp đồng sắp hết hạn trong 30 ngày
+const soonExpired = contracts.filter((c: any) => {
+  if (!c.endDate || c.status !== "active") return false;
+  const diff = (new Date(c.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return diff >= 0 && diff <= 30;
+});
+
+// Hợp đồng đã quá hạn
+const overExpired = contracts.filter((c: any) => {
+  if (!c.endDate || c.status !== "active") return false;
+  const diff = (new Date(c.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return diff < 0;
+});
+
+setContracts(soonExpired);
+setOverdueContracts(overExpired);
+
+      // Tính doanh thu 6 tháng gần nhất
+      const monthNames = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
+      const last6Months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (5 - i));
+        return { month: d.getMonth() + 1, year: d.getFullYear() };
       });
-      setContracts(soon);
+
+      const chart = last6Months.map(({ month, year }) => {
+        const monthInvoices = invoices.filter(
+          (i: any) => i.month === month && i.year === year
+        );
+        const doanhThu = monthInvoices
+          .filter((i: any) => i.status === "paid")
+          .reduce((sum: number, i: any) => sum + i.totalAmount, 0);
+        const chuaThu = monthInvoices
+          .filter((i: any) => i.status === "unpaid" || i.status === "overdue")
+          .reduce((sum: number, i: any) => sum + i.totalAmount, 0);
+
+        return {
+          name: `${monthNames[month - 1]}/${year}`,
+          doanhThu,
+          chuaThu,
+        };
+      });
+
+      setChartData(chart);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
-  
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -102,7 +143,7 @@ export default function DashboardPage() {
   const handlePay = async (invoice: Invoice) => {
     try {
       setPaying(invoice._id);
-      await api.put(`/invoices/${invoice._id}/pay`);
+      await api.put(`/invoices/${invoice._id}/pay`, { paymentMethod: "cash" });
       showToast("Đã đánh dấu thanh toán!");
       fetchData();
     } catch (err: any) {
@@ -113,8 +154,14 @@ export default function DashboardPage() {
   };
 
   const getDaysLeft = (endDate: string) => {
-    const diff = (new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24);
-    return Math.ceil(diff);
+    return Math.ceil((new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  // Format tiền rút gọn cho chart
+  const formatMoney = (value: number) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}tr`;
+    if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
+    return String(value);
   };
 
   if (loading) {
@@ -129,7 +176,6 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-800">Tổng quan</h1>
-        <p className="text-slate-400 text-sm mt-0.5">Chào mừng trở lại!</p>
       </div>
 
       {/* Stats cards */}
@@ -177,6 +223,51 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Biểu đồ doanh thu */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="font-semibold text-slate-800">Doanh thu 6 tháng gần nhất</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Đã thu và chưa thu</p>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+              Đã thu
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              Chưa thu
+            </div>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 12, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tickFormatter={formatMoney}
+              tick={{ fontSize: 12, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              formatter={(value: any) => [`${value.toLocaleString("vi-VN")}đ`]}
+              labelStyle={{ color: "#475569", fontWeight: 600 }}
+              contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: 12 }}
+            />
+            <Bar dataKey="doanhThu" name="Đã thu"   fill="#6366f1" radius={[6,6,0,0]} />
+            <Bar dataKey="chuaThu"  name="Chưa thu" fill="#fbbf24" radius={[6,6,0,0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Hóa đơn chưa thu */}
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -209,13 +300,12 @@ export default function DashboardPage() {
                       {invoice.totalAmount.toLocaleString("vi-VN")}đ
                     </p>
                     <Button
-                      size="sm"
-                      className="h-7 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
-                      onClick={() => handlePay(invoice)}
-                      disabled={paying === invoice._id}
-                    >
-                      {paying === invoice._id ? "..." : "Thu"}
-                    </Button>
+  size="sm"
+  className="h-7 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+  onClick={() => router.push("/invoices")}
+>
+  Thu tiền
+</Button>
                   </div>
                 </div>
               ))}
@@ -225,45 +315,82 @@ export default function DashboardPage() {
 
         {/* Hợp đồng sắp hết hạn */}
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800">Hợp đồng sắp hết hạn</h2>
-            <span className="text-xs bg-rose-100 text-rose-600 px-2.5 py-1 rounded-full font-medium">
-              Trong 30 ngày
+  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+    <h2 className="font-semibold text-slate-800">Hợp đồng cần chú ý</h2>
+    <div className="flex gap-2">
+      {overdueContracts.length > 0 && (
+        <span className="text-xs bg-red-100 text-red-600 px-2.5 py-1 rounded-full font-medium">
+          {overdueContracts.length} quá hạn
+        </span>
+      )}
+      {contracts.length > 0 && (
+        <span className="text-xs bg-amber-100 text-amber-600 px-2.5 py-1 rounded-full font-medium">
+          {contracts.length} sắp hết
+        </span>
+      )}
+    </div>
+  </div>
+
+  {contracts.length === 0 && overdueContracts.length === 0 ? (
+    <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+      <DoorOpen className="h-8 w-8 mb-2 opacity-30" />
+      <p className="text-sm">Không có hợp đồng cần chú ý</p>
+    </div>
+  ) : (
+    <div className="divide-y divide-slate-50">
+      {/* Quá hạn trước */}
+      {overdueContracts.map((contract) => {
+        const days = Math.abs(getDaysLeft(contract.endDate!));
+        return (
+          <div key={contract._id} className="flex items-center justify-between px-5 py-3.5">
+            <div>
+              <p className="text-sm font-medium text-slate-800">
+                Phòng {contract.roomId?.roomNumber}
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {contract.tenantId?.fullName}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-red-100 text-red-600">
+                Quá {days} ngày
+              </span>
+              <Button
+                size="sm"
+                className="h-7 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+                onClick={() => router.push("/contracts")}
+              >
+                Xử lý
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Sắp hết hạn */}
+      {contracts.map((contract) => {
+        const days = getDaysLeft(contract.endDate!);
+        return (
+          <div key={contract._id} className="flex items-center justify-between px-5 py-3.5">
+            <div>
+              <p className="text-sm font-medium text-slate-800">
+                Phòng {contract.roomId?.roomNumber}
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {contract.tenantId?.fullName}
+              </p>
+            </div>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+              days <= 7 ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
+            }`}>
+              còn {days} ngày
             </span>
           </div>
-
-          {contracts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-slate-400">
-              <DoorOpen className="h-8 w-8 mb-2 opacity-30" />
-              <p className="text-sm">Không có hợp đồng sắp hết hạn</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {contracts.map((contract) => {
-                const days = getDaysLeft(contract.endDate!);
-                return (
-                  <div key={contract._id} className="flex items-center justify-between px-5 py-3.5">
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">
-                        Phòng {contract.roomId?.roomNumber}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {contract.tenantId?.fullName}
-                      </p>
-                    </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      days <= 7
-                        ? "bg-red-100 text-red-600"
-                        : "bg-amber-100 text-amber-600"
-                    }`}>
-                      còn {days} ngày
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        );
+      })}
+    </div>
+  )}
+</div>
       </div>
 
       {/* Toast */}

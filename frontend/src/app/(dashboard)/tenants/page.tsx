@@ -177,10 +177,10 @@ const fetchData = async () => {
   // Floors + filtered rooms
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
   const filteredRooms = rooms.filter(
-    (r) =>
-      r.currentPeople < r.maxPeople &&
-      (selectedFloor ? r.floor === Number(selectedFloor) : true)
-  );
+  (r) =>
+    r.status !== "occupied" &&
+    (selectedFloor ? r.floor === Number(selectedFloor) : true)
+);
 
   // Search
   const filtered = tenants.filter((t) => {

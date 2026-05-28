@@ -43,22 +43,21 @@ interface Contract {
 }
 
 const statusConfig = {
-  active: { label: "Đang thuê", class: "bg-emerald-100 text-emerald-700" },
-  ended: { label: "Đã kết thúc", class: "bg-slate-100 text-slate-500" },
+  active: { label: "Đang thuê",   class: "bg-emerald-100 text-emerald-700" },
+  ended:  { label: "Đã kết thúc", class: "bg-slate-100 text-slate-500" },
 };
 
 const defaultForm = {
-  roomId: "",
-  tenantId: "",
+  roomId:    "",
+  tenantId:  "",
   startDate: "",
-  endDate: "",
+  endDate:   "",
   rentPrice: "",
-  deposit: "",
-  note: "",
+  deposit:   "",
+  note:      "",
 };
 
-const selectClass =
-  "w-full h-10 rounded-md border border-input px-3 text-sm bg-background text-foreground";
+const selectClass = "w-full h-10 rounded-md border border-input px-3 text-sm bg-background text-foreground";
 
 const formatDate = (dateStr: string | null) => {
   if (!dateStr || dateStr === "") return "Chưa xác định";
@@ -69,46 +68,27 @@ const formatDate = (dateStr: string | null) => {
 
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [rooms,     setRooms]     = useState<Room[]>([]);
+  const [tenants,   setTenants]   = useState<Tenant[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [search,    setSearch]    = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const [openModal, setOpenModal] = useState(false);
-  const [form, setForm] = useState(defaultForm);
+  const [openModal,  setOpenModal]  = useState(false);
+  const [form,       setForm]       = useState(defaultForm);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const [error,      setError]      = useState("");
+  const [toast,      setToast]      = useState("");
 
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [selectedFloor,    setSelectedFloor]    = useState("");
+
+  // Modal gia hạn
   const [openRenewModal, setOpenRenewModal] = useState(false);
-  const [renewEndDate, setRenewEndDate] = useState("");
-
-  const handleRenew = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!selectedContract) return;
-  try {
-    setSubmitting(true);
-    setError("");
-    await api.put(`/contracts/${selectedContract._id}`, {
-      endDate: renewEndDate,
-    });
-    setOpenRenewModal(false);
-    setRenewEndDate("");
-    setSelectedContract(null);
-    showToast("Gia hạn hợp đồng thành công!");
-    fetchData();
-  } catch (err: any) {
-    setError(err?.response?.data?.message || "Có lỗi xảy ra");
-  } finally {
-    setSubmitting(false);
-  }
-};
-
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(
-    null,
-  );
-  const [selectedFloor, setSelectedFloor] = useState("");
+  const [renewForm, setRenewForm] = useState({
+    startDate: "",
+    endDate:   "",
+  });
 
   useEffect(() => {
     fetchData();
@@ -142,13 +122,13 @@ export default function ContractsPage() {
       setSubmitting(true);
       setError("");
       await api.post("/contracts", {
-        roomId: form.roomId,
-        tenantId: form.tenantId,
+        roomId:    form.roomId,
+        tenantId:  form.tenantId,
         startDate: form.startDate,
-        endDate: form.endDate !== "" ? form.endDate : null,
+        endDate:   form.endDate !== "" ? form.endDate : null,
         rentPrice: Number(form.rentPrice),
-        deposit: Number(form.deposit),
-        note: form.note,
+        deposit:   Number(form.deposit),
+        note:      form.note,
       });
       setOpenModal(false);
       setForm(defaultForm);
@@ -163,12 +143,7 @@ export default function ContractsPage() {
   };
 
   const handleEndContract = async (contract: Contract) => {
-    if (
-      !confirm(
-        `Xác nhận kết thúc hợp đồng phòng ${contract.roomId?.roomNumber}?`,
-      )
-    )
-      return;
+    if (!confirm(`Xác nhận kết thúc hợp đồng phòng ${contract.roomId?.roomNumber}?`)) return;
     try {
       await api.put(`/contracts/${contract._id}/end`, {
         endDate: new Date().toISOString(),
@@ -181,19 +156,57 @@ export default function ContractsPage() {
     }
   };
 
+  const handleOpenRenew = (contract: Contract) => {
+    // Ngày bắt đầu mới = ngày kết thúc cũ + 1 ngày
+    const oldEnd = contract.endDate ? new Date(contract.endDate) : new Date();
+    oldEnd.setDate(oldEnd.getDate() + 1);
+    setRenewForm({
+      startDate: oldEnd.toISOString().slice(0, 10),
+      endDate:   "",
+    });
+    setOpenRenewModal(true);
+    setError("");
+  };
+
+  const handleRenew = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContract) return;
+    if (renewForm.startDate >= renewForm.endDate) {
+      setError("Ngày kết thúc phải sau ngày bắt đầu");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setError("");
+      await api.put(`/contracts/${selectedContract._id}`, {
+        startDate: renewForm.startDate,
+        endDate:   renewForm.endDate,
+      });
+      setOpenRenewModal(false);
+      setRenewForm({ startDate: "", endDate: "" });
+      setSelectedContract(null);
+      showToast("Gia hạn hợp đồng thành công!");
+      fetchData();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Floors
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
 
   // Filtered rooms theo tầng và còn chỗ
   const filteredRooms = rooms.filter(
-    (r) =>
-      r.currentPeople < r.maxPeople &&
-      (selectedFloor ? r.floor === Number(selectedFloor) : true),
-  );
+  (r) =>
+    r.status !== "occupied" &&
+    (selectedFloor ? r.floor === Number(selectedFloor) : true)
+);
 
   // Filtered tenants theo phòng đã chọn
   const filteredTenants = tenants.filter((t) =>
-    form.roomId ? t.roomId?._id === form.roomId : true,
+    form.roomId ? t.roomId?._id === form.roomId : true
   );
 
   // Search + filter
@@ -220,8 +233,8 @@ export default function ContractsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Hợp đồng</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            {contracts.filter((c) => c.status === "active").length} đang active
-            • {contracts.length} tổng
+            {contracts.filter((c) => c.status === "active").length} đang active •{" "}
+            {contracts.length} tổng
           </p>
         </div>
         <Button
@@ -276,12 +289,10 @@ export default function ContractsPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">
-                      Phòng {contract.roomId?.roomNumber} —{" "}
-                      {contract.tenantId?.fullName}
+                      Phòng {contract.roomId?.roomNumber} — {contract.tenantId?.fullName}
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      {formatDate(contract.startDate)} →{" "}
-                      {formatDate(contract.endDate)}
+                      {formatDate(contract.startDate)} → {formatDate(contract.endDate)}
                     </p>
                   </div>
                 </div>
@@ -289,9 +300,7 @@ export default function ContractsPage() {
                   <p className="text-indigo-600 font-semibold text-sm">
                     {contract.rentPrice.toLocaleString("vi-VN")}đ/tháng
                   </p>
-                  <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[contract.status].class}`}
-                  >
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[contract.status].class}`}>
                     {statusConfig[contract.status].label}
                   </span>
                 </div>
@@ -302,42 +311,26 @@ export default function ContractsPage() {
       )}
 
       {/* Modal tạo hợp đồng */}
-      <Dialog
-        open={openModal}
-        onOpenChange={(open) => {
-          setOpenModal(open);
-          if (!open) {
-            setForm(defaultForm);
-            setSelectedFloor("");
-            setError("");
-          }
-        }}
-      >
-        <DialogContent
-          aria-describedby={undefined}
-          className="rounded-2xl max-w-lg"
-        >
+      <Dialog open={openModal} onOpenChange={(open) => {
+        setOpenModal(open);
+        if (!open) { setForm(defaultForm); setSelectedFloor(""); setError(""); }
+      }}>
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-lg">
           <DialogHeader>
             <DialogTitle>Tạo hợp đồng mới</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* Tầng + Phòng */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Tầng</Label>
                 <select
                   value={selectedFloor}
-                  onChange={(e) => {
-                    setSelectedFloor(e.target.value);
-                    setForm({ ...form, roomId: "", tenantId: "" });
-                  }}
+                  onChange={(e) => { setSelectedFloor(e.target.value); setForm({ ...form, roomId: "", tenantId: "" }); }}
                   className={selectClass}
                 >
                   <option value="">Tất cả tầng</option>
                   {floors.map((f) => (
-                    <option key={f} value={f}>
-                      Tầng {f}
-                    </option>
+                    <option key={f} value={f}>Tầng {f}</option>
                   ))}
                 </select>
               </div>
@@ -347,26 +340,19 @@ export default function ContractsPage() {
                   value={form.roomId}
                   onChange={(e) => {
                     const room = rooms.find((r) => r._id === e.target.value);
-                    setForm({
-                      ...form,
-                      roomId: e.target.value,
-                      rentPrice: String(room?.price || ""),
-                    });
+                    setForm({ ...form, roomId: e.target.value, rentPrice: String(room?.price || "") });
                   }}
                   className={selectClass}
                   required
                 >
                   <option value="">Chọn phòng</option>
                   {filteredRooms.map((r) => (
-                    <option key={r._id} value={r._id}>
-                      Phòng {r.roomNumber}
-                    </option>
+                    <option key={r._id} value={r._id}>Phòng {r.roomNumber}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Khách thuê */}
             <div className="space-y-1.5">
               <Label>Khách thuê (người đại diện)</Label>
               <select
@@ -377,105 +363,49 @@ export default function ContractsPage() {
               >
                 <option value="">Chọn khách thuê</option>
                 {filteredTenants.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.fullName} — {t.phone}
-                  </option>
+                  <option key={t._id} value={t._id}>{t.fullName} — {t.phone}</option>
                 ))}
               </select>
             </div>
 
-            {/* Ngày bắt đầu + kết thúc */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Ngày bắt đầu</Label>
-                <Input
-                  type="date"
-                  value={form.startDate}
-                  onChange={(e) =>
-                    setForm({ ...form, startDate: e.target.value })
-                  }
-                  required
-                />
+                <Input type="date" value={form.startDate}
+                  onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
                 <Label>Ngày kết thúc</Label>
-                <Input
-                  type="date"
-                  value={form.endDate}
-                  onChange={(e) =>
-                    setForm({ ...form, endDate: e.target.value })
-                  }
-                />
+                <Input type="date" value={form.endDate}
+                  onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
               </div>
             </div>
 
-            {/* Giá thuê + tiền cọc */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Giá thuê (đ/tháng)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="2500000"
-                  value={form.rentPrice}
-                  onChange={(e) =>
-                    setForm({ ...form, rentPrice: e.target.value })
-                  }
-                  required
-                />
+                <Input type="number" min={1} placeholder="2500000" value={form.rentPrice}
+                  onChange={(e) => setForm({ ...form, rentPrice: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
                 <Label>Tiền cọc</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="2500000"
-                  value={form.deposit}
-                  onChange={(e) =>
-                    setForm({ ...form, deposit: e.target.value })
-                  }
-                />
+                <Input type="number" min={0} placeholder="2500000" value={form.deposit}
+                  onChange={(e) => setForm({ ...form, deposit: e.target.value })} />
               </div>
             </div>
 
-            {/* Ghi chú */}
             <div className="space-y-1.5">
               <Label>Ghi chú</Label>
-              <Input
-                placeholder="..."
-                value={form.note}
-                onChange={(e) => setForm({ ...form, note: e.target.value })}
-              />
+              <Input placeholder="..." value={form.note}
+                onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
 
-            {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">
-                {error}
-              </p>
-            )}
+            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
             <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setOpenModal(false)}
-              >
-                Hủy
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Đang lưu...
-                  </span>
-                ) : (
-                  "Tạo hợp đồng"
-                )}
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setOpenModal(false)}>Hủy</Button>
+              <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" disabled={submitting}>
+                {submitting ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Đang lưu...</span> : "Tạo hợp đồng"}
               </Button>
             </div>
           </form>
@@ -483,55 +413,25 @@ export default function ContractsPage() {
       </Dialog>
 
       {/* Modal chi tiết hợp đồng */}
-      <Dialog
-        open={!!selectedContract}
-        onOpenChange={(open) => {
-          if (!open) setSelectedContract(null);
-        }}
-      >
-        <DialogContent
-          aria-describedby={undefined}
-          className="rounded-2xl max-w-md"
-        >
+      <Dialog open={!!selectedContract} onOpenChange={(open) => { if (!open) setSelectedContract(null); }}>
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              Hợp đồng phòng {selectedContract?.roomId?.roomNumber}
-            </DialogTitle>
+            <DialogTitle>Hợp đồng phòng {selectedContract?.roomId?.roomNumber}</DialogTitle>
           </DialogHeader>
           {selectedContract && (
             <div className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  {
-                    label: "Khách thuê",
-                    value: selectedContract.tenantId?.fullName,
-                  },
-                  {
-                    label: "Số điện thoại",
-                    value: selectedContract.tenantId?.phone,
-                  },
-                  {
-                    label: "Ngày bắt đầu",
-                    value: formatDate(selectedContract.startDate),
-                  },
-                  {
-                    label: "Ngày kết thúc",
-                    value: formatDate(selectedContract.endDate),
-                  },
-                  {
-                    label: "Giá thuê",
-                    value: `${selectedContract.rentPrice.toLocaleString("vi-VN")}đ/tháng`,
-                  },
-                  {
-                    label: "Tiền cọc",
-                    value: `${selectedContract.deposit.toLocaleString("vi-VN")}đ`,
-                  },
+                  { label: "Khách thuê",    value: selectedContract.tenantId?.fullName },
+                  { label: "Số điện thoại", value: selectedContract.tenantId?.phone },
+                  { label: "Ngày bắt đầu",  value: formatDate(selectedContract.startDate) },
+                  { label: "Ngày kết thúc", value: formatDate(selectedContract.endDate) },
+                  { label: "Giá thuê",      value: `${selectedContract.rentPrice.toLocaleString("vi-VN")}đ/tháng` },
+                  { label: "Tiền cọc",      value: `${selectedContract.deposit.toLocaleString("vi-VN")}đ` },
                 ].map((item) => (
                   <div key={item.label} className="bg-slate-50 rounded-xl p-3">
                     <p className="text-xs text-slate-400">{item.label}</p>
-                    <p className="text-sm font-medium text-slate-800 mt-0.5">
-                      {item.value}
-                    </p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{item.value}</p>
                   </div>
                 ))}
               </div>
@@ -539,80 +439,97 @@ export default function ContractsPage() {
               {selectedContract.note && (
                 <div className="bg-slate-50 rounded-xl p-3">
                   <p className="text-xs text-slate-400">Ghi chú</p>
-                  <p className="text-sm text-slate-800 mt-0.5">
-                    {selectedContract.note}
-                  </p>
+                  <p className="text-sm text-slate-800 mt-0.5">{selectedContract.note}</p>
                 </div>
               )}
 
               <div className="flex items-center gap-2">
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[selectedContract.status].class}`}
-                >
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[selectedContract.status].class}`}>
                   {statusConfig[selectedContract.status].label}
                 </span>
               </div>
 
               {selectedContract.status === "active" && (
-  <div className="flex gap-3">
-    <Button
-      variant="outline"
-      className="flex-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-      onClick={() => {
-        setOpenRenewModal(true);
-        setRenewEndDate(selectedContract.endDate?.slice(0, 10) || "");
-        setError("");
-      }}
-    >
-      Gia hạn
-    </Button>
-    <Button
-      variant="outline"
-      className="flex-1 border-red-200 text-red-500 hover:bg-red-50"
-      onClick={() => handleEndContract(selectedContract)}
-    >
-      Kết thúc
-    </Button>
-  </div>
-)}
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => handleOpenRenew(selectedContract)}
+                  >
+                    Gia hạn
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-red-200 text-red-500 hover:bg-red-50"
+                    onClick={() => handleEndContract(selectedContract)}
+                  >
+                    Kết thúc
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-<Dialog open={openRenewModal} onOpenChange={(open) => {
-  setOpenRenewModal(open);
-  if (!open) setError("");
-}}>
-  <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
-    <DialogHeader>
-      <DialogTitle>Gia hạn hợp đồng</DialogTitle>
-    </DialogHeader>
-    <form onSubmit={handleRenew} className="space-y-4 mt-2">
-      <div className="space-y-1.5">
-        <Label>Ngày kết thúc mới</Label>
-        <Input
-          type="date"
-          value={renewEndDate}
-          onChange={(e) => setRenewEndDate(e.target.value)}
-          required
-        />
-      </div>
-      {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
-      <div className="flex gap-3 pt-2">
-        <Button type="button" variant="outline" className="flex-1"
-          onClick={() => setOpenRenewModal(false)}>
-          Hủy
-        </Button>
-        <Button type="submit"
-          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-          disabled={submitting}>
-          {submitting ? "Đang lưu..." : "Gia hạn"}
-        </Button>
-      </div>
-    </form>
-  </DialogContent>
-</Dialog>
+      {/* Modal gia hạn hợp đồng */}
+      <Dialog open={openRenewModal} onOpenChange={(open) => {
+        setOpenRenewModal(open);
+        if (!open) { setError(""); setRenewForm({ startDate: "", endDate: "" }); }
+      }}>
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Gia hạn hợp đồng</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRenew} className="space-y-4 mt-2">
+
+            {/* Thông tin hợp đồng cũ */}
+            <div className="bg-slate-50 rounded-xl p-3 text-sm text-slate-500">
+              Hợp đồng cũ kết thúc:{" "}
+              <span className="font-medium text-slate-700">
+                {selectedContract?.endDate
+                  ? new Date(selectedContract.endDate).toLocaleDateString("vi-VN")
+                  : "Chưa xác định"}
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Ngày bắt đầu mới</Label>
+              <Input
+                type="date"
+                value={renewForm.startDate}
+                onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Ngày kết thúc mới</Label>
+              <Input
+                type="date"
+                value={renewForm.endDate}
+                onChange={(e) => setRenewForm({ ...renewForm, endDate: e.target.value })}
+                required
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1"
+                onClick={() => setOpenRenewModal(false)}>
+                Hủy
+              </Button>
+              <Button type="submit"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Gia hạn"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-medium">
