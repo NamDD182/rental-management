@@ -169,30 +169,39 @@ export default function ContractsPage() {
   };
 
   const handleRenew = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedContract) return;
-    if (renewForm.startDate >= renewForm.endDate) {
-      setError("Ngày kết thúc phải sau ngày bắt đầu");
-      return;
-    }
-    try {
-      setSubmitting(true);
-      setError("");
-      await api.put(`/contracts/${selectedContract._id}`, {
-        startDate: renewForm.startDate,
-        endDate:   renewForm.endDate,
-      });
-      setOpenRenewModal(false);
-      setRenewForm({ startDate: "", endDate: "" });
-      setSelectedContract(null);
-      showToast("Gia hạn hợp đồng thành công!");
-      fetchData();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Có lỗi xảy ra");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  e.preventDefault();
+  if (!selectedContract) return;
+  if (renewForm.startDate >= renewForm.endDate) {
+    setError("Ngày kết thúc phải sau ngày bắt đầu");
+    return;
+  }
+  try {
+    setSubmitting(true);
+    setError("");
+
+    // Tạo contract MỚI thay vì update
+    await api.post("/contracts", {
+      roomId:    selectedContract.roomId._id,
+      tenantId:  selectedContract.tenantId._id,
+      startDate: renewForm.startDate,
+      endDate:   renewForm.endDate,
+      rentPrice: selectedContract.rentPrice,
+      deposit:   selectedContract.deposit,
+      note:      selectedContract.note,
+      isRenewal: true, 
+    });
+
+    setOpenRenewModal(false);
+    setRenewForm({ startDate: "", endDate: "" });
+    setSelectedContract(null);
+    showToast("Gia hạn hợp đồng thành công!");
+    fetchData();
+  } catch (err: any) {
+    setError(err?.response?.data?.message || "Có lỗi xảy ra");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // Floors
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);

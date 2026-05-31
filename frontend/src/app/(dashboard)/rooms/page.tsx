@@ -330,7 +330,7 @@ export default function RoomsPage() {
               <div className="space-y-1.5">
                 <Label>Số người tối đa</Label>
                 <Input
-                  type="number" min={1} max={10} placeholder="2"
+                  type="number" min={1} max={3} placeholder="2"
                   value={form.maxPeople}
                   onChange={(e) => setForm({ ...form, maxPeople: e.target.value })}
                   required
@@ -485,7 +485,7 @@ export default function RoomsPage() {
               <div className="space-y-1.5">
                 <Label>Số người tối đa</Label>
                 <Input
-                  type="number" min={1} max={10}
+                  type="number" min={1} max={3}
                   value={editForm.maxPeople}
                   onChange={(e) => setEditForm({ ...editForm, maxPeople: e.target.value })}
                   required

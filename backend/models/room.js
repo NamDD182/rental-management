@@ -5,7 +5,7 @@ const roomSchema = new mongoose.Schema({
   floor:     {type: Number, required: true},
   area:      {type: Number, required: true}, //m2
   price:     {type: Number, required: true}, // giá niêm yết từng tháng
-  maxPeople: {type: Number, required: true, min: 1},
+  maxPeople: {type: Number, required: true, max: 3},
   status:    {type: String, enum:["empty", "occupied"], default: "empty"},
   amenities: {type: [String], default: []}, // tiện ích: ["điều hòa", "nóng lạnh", "ban công"]
   images:    {type: [String], default: []}, // ảnh phòng 
