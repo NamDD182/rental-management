@@ -13,6 +13,11 @@ const tenantSchema = new mongoose.Schema({
     gender:        {type: String, enum: ["male", "female"]},
     roomId:        {type: mongoose.Schema.Types.ObjectId, ref: "Room"},
     vehicleNumber: {type: String, default: ""},
+
+    tempResidenceCode: {type: String, default: ""}, // mã tạm trú
+    emergencyName:     {type: String, default: ""}, // người liên hệ khẩn cấp
+    emergencyPhone:    {type: String, default: ""}, // SĐT liên hệ khẩn cấp
+
     active:        {type: Boolean, default:true},
     note:          {type: String, default:""}
 },

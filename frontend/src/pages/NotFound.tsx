@@ -1,11 +1,10 @@
-"use client";
 
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Building2, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
     <div
@@ -48,7 +47,7 @@ export default function NotFound() {
         </div>
 
         <Button
-          onClick={() => router.push("/")}
+          onClick={() => navigate("/")}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 gap-2"
         >
           <Home className="h-4 w-4" />

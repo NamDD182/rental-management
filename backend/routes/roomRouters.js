@@ -5,6 +5,7 @@ const {
     getAllRooms,
     getRoomById,
     getRoomTenants,
+    getRoomHistory,
     createRoom,
     updateRoom,
     deleteRoom
@@ -14,6 +15,7 @@ const {
 router.get("/",      auth, getAllRooms);
 router.get("/:id",   auth, getRoomById);
 router.get("/:id/tenants", auth, getRoomTenants);
+router.get("/:id/history", auth, getRoomHistory);
 router.post("/",     auth, createRoom);
 router.put("/:id",   auth, updateRoom);
 router.delete("/:id",auth, deleteRoom);

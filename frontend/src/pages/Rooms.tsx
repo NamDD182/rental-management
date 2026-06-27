@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -63,6 +61,7 @@ export default function RoomsPage() {
   // Modal chi tiết
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomTenants, setRoomTenants] = useState<Tenant[]>([]);
+  const [roomHistory, setRoomHistory] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
 
   // Modal sửa
@@ -87,11 +86,17 @@ export default function RoomsPage() {
   const handleClickRoom = async (room: Room) => {
     setSelectedRoom(room);
     setLoadingTenants(true);
+    setRoomHistory([]);
     try {
-      const res = await api.get(`/rooms/${room._id}/tenants`);
-      setRoomTenants(res.data);
+      const [tenantsRes, historyRes] = await Promise.all([
+        api.get(`/rooms/${room._id}/tenants`),
+        api.get(`/rooms/${room._id}/history`),
+      ]);
+      setRoomTenants(tenantsRes.data);
+      setRoomHistory(historyRes.data);
     } catch {
       setRoomTenants([]);
+      setRoomHistory([]);
     } finally {
       setLoadingTenants(false);
     }
@@ -430,6 +435,34 @@ export default function RoomsPage() {
                   </div>
                 )}
               </div>
+
+              {/* Lịch sử người ở */}
+              {roomHistory.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Người ở cũ ({roomHistory.length})
+                  </p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {roomHistory.map((t) => (
+                      <div key={t._id} className="flex items-center gap-3 bg-slate-50 rounded-xl p-3 opacity-80">
+                        <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                          <span className="text-xs font-semibold text-slate-500">
+                            {t.fullName.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-700 truncate">{t.fullName}</p>
+                          <p className="text-xs text-slate-400">{t.phone}</p>
+                        </div>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-500 shrink-0">
+                          đã rời
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <Button
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"

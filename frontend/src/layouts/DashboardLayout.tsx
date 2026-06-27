@@ -1,8 +1,6 @@
-"use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
+import { useNavigate, useLocation, Outlet, Link } from "react-router-dom";
 import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,9 +33,9 @@ const navItems = [
   { href: "/invoices",  icon: Receipt,         label: "Hóa đơn" },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router   = useRouter();
-  const pathname = usePathname();
+export default function DashboardLayout() {
+  const navigate = useNavigate();
+  const pathname = useLocation().pathname;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
@@ -62,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login");
+      navigate("/login");
       return;
     }
     fetchProfile();
@@ -138,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    router.push("/login");
+    navigate("/login");
   };
 
   return (
@@ -172,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navItems.map(({ href, icon: Icon, label }) => {
             const isActive = pathname === href;
             return (
-              <Link key={href} href={href} onClick={() => setSidebarOpen(false)}
+              <Link key={href} to={href} onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   isActive ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                 }`}
@@ -253,7 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-          {children}
+          <Outlet />
         </main>
       </div>
 

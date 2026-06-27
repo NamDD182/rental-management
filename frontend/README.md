@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rental Management — Frontend
+
+A React + Vite single-page app for managing a rental property (rooms, tenants, contracts, invoices). Migrated from Next.js to a plain React SPA with React Router.
+
+## Tech stack
+
+- React 19 + TypeScript
+- Vite 6 (build tool / dev server)
+- React Router 7 (client-side routing)
+- Tailwind CSS v4 + shadcn/ui (radix-ui)
+- axios (API client), recharts (charts), lucide-react (icons)
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the dev server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The backend API is expected at `http://localhost:3000` (configured in `src/lib/axios.ts`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+- `npm run dev` — start the Vite dev server
+- `npm run build` — type-check (`tsc -b`) and build for production into `dist/`
+- `npm run preview` — preview the production build locally
+- `npm run lint` — run ESLint
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+index.html              # SPA entry HTML (title, fonts, favicon)
+vite.config.ts          # Vite + React + Tailwind + tsconfig paths
+src/
+  main.tsx              # App bootstrap (BrowserRouter)
+  App.tsx               # Route definitions
+  globals.css           # Tailwind + theme tokens
+  layouts/
+    DashboardLayout.tsx # Sidebar/header shell, auth guard, renders <Outlet />
+  pages/                # Login, Dashboard, Rooms, Tenants, Contracts, Invoices, NotFound
+  components/ui/        # shadcn/ui components
+  lib/                  # axios instance + utils
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Routing
 
-## Deploy on Vercel
+| Path         | Page             |
+| ------------ | ---------------- |
+| `/login`     | Login            |
+| `/`          | Dashboard        |
+| `/rooms`     | Rooms            |
+| `/tenants`   | Tenants          |
+| `/contracts` | Contracts        |
+| `/invoices`  | Invoices         |
+| `*`          | NotFound (404)   |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Dashboard routes are nested under `DashboardLayout`, which checks for an auth token in `localStorage` and redirects to `/login` if absent.

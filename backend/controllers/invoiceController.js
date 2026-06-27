@@ -6,6 +6,18 @@ const Tenant = require("../models/tenant");
 // GET /api/invoices — danh sách hóa đơn
 const getAllInvoices = async (req, res) => {
   try {
+    // Tự đánh dấu QUÁ HẠN: hóa đơn chưa thu của tháng đã qua
+    const now = new Date();
+    const cy = now.getFullYear();
+    const cm = now.getMonth() + 1;
+    await Invoice.updateMany(
+      {
+        status: "unpaid",
+        $or: [{ year: { $lt: cy } }, { year: cy, month: { $lt: cm } }],
+      },
+      { status: "overdue" }
+    );
+
     const invoices = await Invoice.find()
       .populate("roomId", "roomNumber floor")
       .populate({

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -279,7 +277,7 @@ export default function InvoicesPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Hóa đơn</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            {invoices.filter((i) => i.status === "unpaid").length} chưa thu •{" "}
+            {invoices.filter((i) => i.status === "unpaid" || i.status === "overdue").length} chưa thu •{" "}
             {invoices.length} tổng
           </p>
         </div>

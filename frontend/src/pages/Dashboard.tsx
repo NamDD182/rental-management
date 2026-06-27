@@ -1,5 +1,4 @@
-"use client";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { DoorOpen, Users, Receipt, TrendingUp } from "lucide-react";
@@ -41,7 +40,7 @@ interface ChartData {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
   const [unpaid, setUnpaid] = useState<Invoice[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -78,12 +77,16 @@ export default function DashboardPage() {
         emptyRooms: rooms.filter((r: any) => r.status === "empty").length,
         totalTenants: tenants.length,
         unpaidAmount: invoices
-          .filter((i: any) => i.status === "unpaid")
+          .filter((i: any) => i.status === "unpaid" || i.status === "overdue")
           .reduce((sum: number, i: any) => sum + i.totalAmount, 0),
-        unpaidCount: invoices.filter((i: any) => i.status === "unpaid").length,
+        unpaidCount: invoices.filter(
+          (i: any) => i.status === "unpaid" || i.status === "overdue"
+        ).length,
       });
 
-      setUnpaid(invoices.filter((i: any) => i.status === "unpaid"));
+      setUnpaid(
+        invoices.filter((i: any) => i.status === "unpaid" || i.status === "overdue")
+      );
 
       // Hợp đồng sắp hết hạn trong 30 ngày
       const soonExpired = contracts.filter((c: any) => {
@@ -219,7 +222,11 @@ export default function DashboardPage() {
           {
             label: "Đang cho thuê",
             value: stats?.occupiedRooms,
-            sub: `${stats?.totalTenants} khách thuê`,
+            sub: `${stats?.totalTenants} khách • ${
+              stats?.totalRooms
+                ? Math.round((stats.occupiedRooms / stats.totalRooms) * 100)
+                : 0
+            }% lấp đầy`,
             icon: Users,
             color: "bg-emerald-100 text-emerald-600",
           },
@@ -355,7 +362,7 @@ export default function DashboardPage() {
                     <Button
                       size="sm"
                       className="h-7 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
-                      onClick={() => router.push("/invoices")}
+                      onClick={() => navigate("/invoices")}
                     >
                       Thu tiền
                     </Button>
@@ -414,7 +421,7 @@ export default function DashboardPage() {
                       <Button
                         size="sm"
                         className="h-7 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
-                        onClick={() => router.push("/contracts")}
+                        onClick={() => navigate("/contracts")}
                       >
                         Xử lý
                       </Button>

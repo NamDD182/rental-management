@@ -8,6 +8,7 @@ const contractSchema = new mongoose.Schema({
   rentPrice: {type: Number, required: true},
   deposit:   {type: Number, default: 0},
   status:    {type: String, enum: ["active", "ended"], default: "active"},
+  contractFile: {type: String, default: ""}, // link file hợp đồng (PDF/ảnh)
   note:      {type:String, default: ""}
 },
   {

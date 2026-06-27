@@ -40,22 +40,15 @@ const createTenant = async (req, res) => {
     const existed = await Tenant.findOne({ cccd });
     if (existed) return res.status(400).json({ message: "CCCD đã tồn tại" });
 
-    // Kiểm tra phòng còn chỗ không
-    // Thay vì filter status !== "occupied"
-    // Kiểm tra số người hiện tại < maxPeople
+    // Kiểm tra phòng còn chỗ: số người đang ở < số người tối đa
     const currentCount = await Tenant.countDocuments({ roomId: room._id, active: true });
     if (currentCount >= room.maxPeople) {
       return res.status(400).json({ message: `Phòng đã đủ ${room.maxPeople} người` });
     }
 
-    // Chỉ set occupied khi đã đầy người
-    if (currentCount + 1 >= room.maxPeople) {
-      await Room.findByIdAndUpdate(roomId, { status: "occupied" });
-    }
-
     const tenant = await Tenant.create(req.body);
 
-    // Cập nhật status phòng thành occupied
+    // Phòng đã có người ở → occupied
     await Room.findByIdAndUpdate(roomId, { status: "occupied" });
 
     res.status(201).json(tenant);
@@ -84,11 +77,10 @@ const deleteTenant = async (req, res) => {
     const tenant = await Tenant.findById(req.params.id);
     if (!tenant) return res.status(404).json({ message: "Không tìm thấy khách thuê" });
 
-    const roomId = tenant.roomId; // lưu lại trước khi set null
+    const roomId = tenant.roomId; // lưu lại để cập nhật phòng
 
-    // Set active = false
+    // Set active = false, GIỮ roomId để lưu lịch sử người ở của phòng
     tenant.active = false;
-    tenant.roomId = null;
     await tenant.save();
 
     // Kiểm tra phòng còn ai không

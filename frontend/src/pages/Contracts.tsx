@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -39,6 +37,7 @@ interface Contract {
   rentPrice: number;
   deposit: number;
   status: "active" | "ended";
+  contractFile?: string;
   note: string;
 }
 
@@ -54,6 +53,7 @@ const defaultForm = {
   endDate:   "",
   rentPrice: "",
   deposit:   "",
+  contractFile: "",
   note:      "",
 };
 
@@ -77,6 +77,7 @@ export default function ContractsPage() {
   const [openModal,  setOpenModal]  = useState(false);
   const [form,       setForm]       = useState(defaultForm);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [error,      setError]      = useState("");
   const [toast,      setToast]      = useState("");
 
@@ -89,6 +90,10 @@ export default function ContractsPage() {
     startDate: "",
     endDate:   "",
   });
+
+  // Modal đổi người đại diện
+  const [openTransferModal, setOpenTransferModal] = useState(false);
+  const [transferTenantId,  setTransferTenantId]  = useState("");
 
   useEffect(() => {
     fetchData();
@@ -128,6 +133,7 @@ export default function ContractsPage() {
         endDate:   form.endDate !== "" ? form.endDate : null,
         rentPrice: Number(form.rentPrice),
         deposit:   Number(form.deposit),
+        contractFile: form.contractFile,
         note:      form.note,
       });
       setOpenModal(false);
@@ -153,6 +159,50 @@ export default function ContractsPage() {
       fetchData();
     } catch (err: any) {
       alert(err?.response?.data?.message || "Có lỗi xảy ra");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      setUploadingFile(true);
+      setError("");
+      const res = await api.post("/upload/file", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setForm((f) => ({ ...f, contractFile: res.data.url }));
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Upload file thất bại");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContract) return;
+    if (!transferTenantId) {
+      setError("Vui lòng chọn người đại diện mới");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setError("");
+      await api.put(`/contracts/${selectedContract._id}/transfer`, {
+        newTenantId: transferTenantId,
+      });
+      setOpenTransferModal(false);
+      setTransferTenantId("");
+      setSelectedContract(null);
+      showToast("Đổi người đại diện thành công!");
+      fetchData();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -206,10 +256,15 @@ export default function ContractsPage() {
   // Floors
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
 
-  // Filtered rooms theo tầng và còn chỗ
+  // Phòng đang có hợp đồng active → không cho ký thêm (mỗi phòng 1 hợp đồng active)
+  const activeContractRoomIds = new Set(
+    contracts.filter((c) => c.status === "active").map((c) => c.roomId?._id)
+  );
+
+  // Hiện phòng chưa có hợp đồng active (kể cả phòng đã có khách ở nhưng chưa ký HĐ)
   const filteredRooms = rooms.filter(
   (r) =>
-    r.status !== "occupied" &&
+    !activeContractRoomIds.has(r._id) &&
     (selectedFloor ? r.floor === Number(selectedFloor) : true)
 );
 
@@ -409,6 +464,23 @@ export default function ContractsPage() {
                 onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
 
+            <div className="space-y-1.5">
+              <Label>File hợp đồng (ảnh hoặc PDF)</Label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileUpload}
+                className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-indigo-600 file:text-sm hover:file:bg-indigo-100"
+              />
+              {uploadingFile && <p className="text-xs text-slate-400">Đang tải file lên...</p>}
+              {form.contractFile && !uploadingFile && (
+                <a href={form.contractFile} target="_blank" rel="noreferrer"
+                  className="text-xs text-indigo-600 underline">
+                  Đã tải lên — xem file
+                </a>
+              )}
+            </div>
+
             {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
             <div className="flex gap-3 pt-2">
@@ -452,6 +524,18 @@ export default function ContractsPage() {
                 </div>
               )}
 
+              {selectedContract.contractFile && (
+                <a
+                  href={selectedContract.contractFile}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 bg-indigo-50 text-indigo-600 rounded-xl p-3 text-sm font-medium hover:bg-indigo-100 transition-all"
+                >
+                  <FileText className="h-4 w-4" />
+                  Xem file hợp đồng
+                </a>
+              )}
+
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[selectedContract.status].class}`}>
                   {statusConfig[selectedContract.status].label}
@@ -459,21 +543,30 @@ export default function ContractsPage() {
               </div>
 
               {selectedContract.status === "active" && (
-                <div className="flex gap-3">
+                <div className="space-y-3">
                   <Button
                     variant="outline"
-                    className="flex-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                    onClick={() => handleOpenRenew(selectedContract)}
+                    className="w-full border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => { setTransferTenantId(""); setError(""); setOpenTransferModal(true); }}
                   >
-                    Gia hạn
+                    Đổi người đại diện
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-red-200 text-red-500 hover:bg-red-50"
-                    onClick={() => handleEndContract(selectedContract)}
-                  >
-                    Kết thúc
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => handleOpenRenew(selectedContract)}
+                    >
+                      Gia hạn
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-red-200 text-red-500 hover:bg-red-50"
+                      onClick={() => handleEndContract(selectedContract)}
+                    >
+                      Kết thúc
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -536,6 +629,76 @@ export default function ContractsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal đổi người đại diện */}
+      <Dialog open={openTransferModal} onOpenChange={(open) => {
+        setOpenTransferModal(open);
+        if (!open) { setError(""); setTransferTenantId(""); }
+      }}>
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Đổi người đại diện</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const roomMates = tenants.filter(
+              (t) =>
+                t.roomId?._id === selectedContract?.roomId?._id &&
+                t._id !== selectedContract?.tenantId?._id
+            );
+            return (
+              <form onSubmit={handleTransfer} className="space-y-4 mt-2">
+                <div className="bg-slate-50 rounded-xl p-3 text-sm text-slate-500">
+                  Đại diện hiện tại:{" "}
+                  <span className="font-medium text-slate-700">
+                    {selectedContract?.tenantId?.fullName}
+                  </span>
+                </div>
+
+                {roomMates.length === 0 ? (
+                  <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-xl">
+                    Phòng này không còn khách nào khác đang ở. Hãy thêm khách vào phòng
+                    trước, hoặc dùng “Kết thúc” nếu cả phòng dọn đi.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label>Người đại diện mới</Label>
+                    <select
+                      value={transferTenantId}
+                      onChange={(e) => setTransferTenantId(e.target.value)}
+                      className={selectClass}
+                      required
+                    >
+                      <option value="">Chọn khách trong phòng</option>
+                      {roomMates.map((t) => (
+                        <option key={t._id} value={t._id}>
+                          {t.fullName} — {t.phone}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-400">
+                      Người đại diện cũ sẽ được gỡ khỏi phòng. Hợp đồng và hóa đơn vẫn giữ nguyên.
+                    </p>
+                  </div>
+                )}
+
+                {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="outline" className="flex-1"
+                    onClick={() => setOpenTransferModal(false)}>
+                    Hủy
+                  </Button>
+                  <Button type="submit"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    disabled={submitting || roomMates.length === 0}>
+                    {submitting ? "Đang lưu..." : "Xác nhận"}
+                  </Button>
+                </div>
+              </form>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

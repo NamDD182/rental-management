@@ -1,7 +1,6 @@
-"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, Eye, EyeOff, Loader2, Users, Receipt, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,7 +21,7 @@ export default function LoginPage() {
       setError("");
       const res = await api.post("/auth/login", form);
       localStorage.setItem("token", res.data.token);
-      router.push("/");
+      navigate("/");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Đăng nhập thất bại");
     } finally {

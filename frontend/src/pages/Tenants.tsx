@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -34,6 +32,9 @@ interface Tenant {
   gender: "male" | "female";
   roomId: Room;
   vehicleNumber: string;
+  tempResidenceCode: string;
+  emergencyName: string;
+  emergencyPhone: string;
   note: string;
   active: boolean;
 }
@@ -49,6 +50,9 @@ const defaultForm = {
   gender: "male",
   roomId: "",
   vehicleNumber: "",
+  tempResidenceCode: "",
+  emergencyName: "",
+  emergencyPhone: "",
   note: "",
 };
 
@@ -139,6 +143,9 @@ const fetchData = async () => {
       gender:        tenant.gender,
       roomId:        tenant.roomId?._id || "",
       vehicleNumber: tenant.vehicleNumber || "",
+      tempResidenceCode: tenant.tempResidenceCode || "",
+      emergencyName:     tenant.emergencyName || "",
+      emergencyPhone:    tenant.emergencyPhone || "",
       note:          tenant.note || "",
     });
     setOpenEditModal(true);
@@ -178,7 +185,8 @@ const fetchData = async () => {
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
   const filteredRooms = rooms.filter(
   (r) =>
-    r.status !== "occupied" &&
+    // Còn chỗ trống (số người < tối đa), hoặc là phòng đang chọn (cho trường hợp sửa)
+    (r.currentPeople < r.maxPeople || r._id === form.roomId) &&
     (selectedFloor ? r.floor === Number(selectedFloor) : true)
 );
 
@@ -424,10 +432,30 @@ const roomsForFilter = rooms.filter((r) =>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Biển số xe</Label>
-              <Input placeholder="30A-12345" value={form.vehicleNumber}
-                onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Biển số xe</Label>
+                <Input placeholder="30A-12345" value={form.vehicleNumber}
+                  onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mã tạm trú</Label>
+                <Input placeholder="..." value={form.tempResidenceCode}
+                  onChange={(e) => setForm({ ...form, tempResidenceCode: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Người liên hệ khẩn cấp</Label>
+                <Input placeholder="Họ tên người thân" value={form.emergencyName}
+                  onChange={(e) => setForm({ ...form, emergencyName: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>SĐT khẩn cấp</Label>
+                <Input placeholder="0912345678" value={form.emergencyPhone}
+                  onChange={(e) => setForm({ ...form, emergencyPhone: e.target.value })} />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -488,6 +516,9 @@ const roomsForFilter = rooms.filter((r) =>
                   { label: "Ngày sinh",     value: formatDate(selectedTenant.dob) },
                   { label: "Quê quán",      value: selectedTenant.hometown || "—" },
                   { label: "Biển số xe",    value: selectedTenant.vehicleNumber || "—" },
+                  { label: "Mã tạm trú",    value: selectedTenant.tempResidenceCode || "—" },
+                  { label: "LH khẩn cấp",   value: selectedTenant.emergencyName || "—" },
+                  { label: "SĐT khẩn cấp",  value: selectedTenant.emergencyPhone || "—" },
                   { label: "Ghi chú",       value: selectedTenant.note || "—" },
                 ].map((item) => (
                   <div key={item.label} className="bg-slate-50 rounded-xl p-3">
@@ -581,10 +612,30 @@ const roomsForFilter = rooms.filter((r) =>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Biển số xe</Label>
-              <Input value={editForm.vehicleNumber}
-                onChange={(e) => setEditForm({ ...editForm, vehicleNumber: e.target.value })} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Biển số xe</Label>
+                <Input value={editForm.vehicleNumber}
+                  onChange={(e) => setEditForm({ ...editForm, vehicleNumber: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mã tạm trú</Label>
+                <Input value={editForm.tempResidenceCode}
+                  onChange={(e) => setEditForm({ ...editForm, tempResidenceCode: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Người liên hệ khẩn cấp</Label>
+                <Input value={editForm.emergencyName}
+                  onChange={(e) => setEditForm({ ...editForm, emergencyName: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>SĐT khẩn cấp</Label>
+                <Input value={editForm.emergencyPhone}
+                  onChange={(e) => setEditForm({ ...editForm, emergencyPhone: e.target.value })} />
+              </div>
             </div>
 
             <div className="space-y-1.5">

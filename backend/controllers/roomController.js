@@ -43,6 +43,17 @@ const getRoomTenants = async (req, res) => {
   }
 };
 
+// GET /rooms/:id/history — lịch sử người ở (đã rời đi) của phòng
+const getRoomHistory = async (req, res) => {
+  try {
+    const history = await Tenant.find({ roomId: req.params.id, active: false })
+      .sort({ updatedAt: -1 });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // POST /rooms
 const createRoom = async (req, res) => {
   try {
@@ -90,4 +101,4 @@ const deleteRoom = async (req, res) => {
   }
 };
 
-module.exports = { getAllRooms, getRoomById, getRoomTenants, createRoom, updateRoom, deleteRoom };
+module.exports = { getAllRooms, getRoomById, getRoomTenants, getRoomHistory, createRoom, updateRoom, deleteRoom };
