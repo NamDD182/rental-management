@@ -4,7 +4,7 @@ A React + Vite single-page app for managing a rental property (rooms, tenants, c
 
 ## Tech stack
 
-- React 19 + TypeScript
+- React 19 (JavaScript / JSX)
 - Vite 6 (build tool / dev server)
 - React Router 7 (client-side routing)
 - Tailwind CSS v4 + shadcn/ui (radix-ui)
@@ -21,12 +21,12 @@ npm run dev
 
 Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-The backend API is expected at `http://localhost:3000` (configured in `src/lib/axios.ts`).
+The backend API is expected at `http://localhost:3000` (configured in `src/lib/axios.js`).
 
 ## Scripts
 
 - `npm run dev` — start the Vite dev server
-- `npm run build` — type-check (`tsc -b`) and build for production into `dist/`
+- `npm run build` — build for production into `dist/`
 - `npm run preview` — preview the production build locally
 - `npm run lint` — run ESLint
 
@@ -34,13 +34,13 @@ The backend API is expected at `http://localhost:3000` (configured in `src/lib/a
 
 ```
 index.html              # SPA entry HTML (title, fonts, favicon)
-vite.config.ts          # Vite + React + Tailwind + tsconfig paths
+vite.config.js          # Vite + React + Tailwind + @ alias
 src/
-  main.tsx              # App bootstrap (BrowserRouter)
-  App.tsx               # Route definitions
+  main.jsx              # App bootstrap (BrowserRouter)
+  App.jsx               # Route definitions
   globals.css           # Tailwind + theme tokens
   layouts/
-    DashboardLayout.tsx # Sidebar/header shell, auth guard, renders <Outlet />
+    DashboardLayout.jsx # Sidebar/header shell, auth guard, renders <Outlet />
   pages/                # Login, Dashboard, Rooms, Tenants, Contracts, Invoices, NotFound
   components/ui/        # shadcn/ui components
   lib/                  # axios instance + utils

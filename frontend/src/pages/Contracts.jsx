@@ -3,102 +3,65 @@ import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, FileText, Loader2, Search } from "lucide-react";
-
-interface Room {
-  _id: string;
-  roomNumber: string;
-  floor: number;
-  price: number;
-  currentPeople: number;
-  maxPeople: number;
-  status: string;
-}
-
-interface Tenant {
-  _id: string;
-  fullName: string;
-  phone: string;
-  roomId: { _id: string; roomNumber: string };
-}
-
-interface Contract {
-  _id: string;
-  roomId: { _id: string; roomNumber: string; floor: number; price: number };
-  tenantId: { _id: string; fullName: string; phone: string };
-  startDate: string;
-  endDate: string | null;
-  rentPrice: number;
-  deposit: number;
-  status: "active" | "ended";
-  contractFile?: string;
-  note: string;
-}
-
 const statusConfig = {
-  active: { label: "Đang thuê",   class: "bg-emerald-100 text-emerald-700" },
-  ended:  { label: "Đã kết thúc", class: "bg-slate-100 text-slate-500" },
+  active: {
+    label: "Đang thuê",
+    class: "bg-emerald-100 text-emerald-700",
+  },
+  ended: {
+    label: "Đã kết thúc",
+    class: "bg-slate-100 text-slate-500",
+  },
 };
-
 const defaultForm = {
-  roomId:    "",
-  tenantId:  "",
+  roomId: "",
+  tenantId: "",
   startDate: "",
-  endDate:   "",
+  endDate: "",
   rentPrice: "",
-  deposit:   "",
+  deposit: "",
   contractFile: "",
-  note:      "",
+  note: "",
 };
-
-const selectClass = "w-full h-10 rounded-md border border-input px-3 text-sm bg-background text-foreground";
-
-const formatDate = (dateStr: string | null) => {
+const selectClass =
+  "w-full h-10 rounded-md border border-input px-3 text-sm bg-background text-foreground";
+const formatDate = (dateStr) => {
   if (!dateStr || dateStr === "") return "Chưa xác định";
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return "Chưa xác định";
   return date.toLocaleDateString("vi-VN");
 };
-
 export default function ContractsPage() {
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [rooms,     setRooms]     = useState<Room[]>([]);
-  const [tenants,   setTenants]   = useState<Tenant[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState("");
+  const [contracts, setContracts] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [tenants, setTenants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-
-  const [openModal,  setOpenModal]  = useState(false);
-  const [form,       setForm]       = useState(defaultForm);
+  const [openModal, setOpenModal] = useState(false);
+  const [form, setForm] = useState(defaultForm);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [error,      setError]      = useState("");
-  const [toast,      setToast]      = useState("");
-
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
-  const [selectedFloor,    setSelectedFloor]    = useState("");
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [selectedFloor, setSelectedFloor] = useState("");
 
   // Modal gia hạn
   const [openRenewModal, setOpenRenewModal] = useState(false);
   const [renewForm, setRenewForm] = useState({
     startDate: "",
-    endDate:   "",
+    endDate: "",
   });
 
   // Modal đổi người đại diện
   const [openTransferModal, setOpenTransferModal] = useState(false);
-  const [transferTenantId,  setTransferTenantId]  = useState("");
-
+  const [transferTenantId, setTransferTenantId] = useState("");
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
       const [contractsRes, roomsRes, tenantsRes] = await Promise.all([
@@ -115,40 +78,37 @@ export default function ContractsPage() {
       setLoading(false);
     }
   };
-
-  const showToast = (msg: string) => {
+  const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSubmitting(true);
       setError("");
       await api.post("/contracts", {
-        roomId:    form.roomId,
-        tenantId:  form.tenantId,
+        roomId: form.roomId,
+        tenantId: form.tenantId,
         startDate: form.startDate,
-        endDate:   form.endDate !== "" ? form.endDate : null,
+        endDate: form.endDate !== "" ? form.endDate : null,
         rentPrice: Number(form.rentPrice),
-        deposit:   Number(form.deposit),
+        deposit: Number(form.deposit),
         contractFile: form.contractFile,
-        note:      form.note,
+        note: form.note,
       });
       setOpenModal(false);
       setForm(defaultForm);
       setSelectedFloor("");
       showToast("Tạo hợp đồng thành công!");
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const handleEndContract = async (contract: Contract) => {
+  const handleEndContract = async (contract) => {
     if (!confirm(`Xác nhận kết thúc hợp đồng phòng ${contract.roomId?.roomNumber}?`)) return;
     try {
       await api.put(`/contracts/${contract._id}/end`, {
@@ -157,12 +117,11 @@ export default function ContractsPage() {
       setSelectedContract(null);
       showToast("Kết thúc hợp đồng thành công!");
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       alert(err?.response?.data?.message || "Có lỗi xảy ra");
     }
   };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const fd = new FormData();
@@ -171,17 +130,21 @@ export default function ContractsPage() {
       setUploadingFile(true);
       setError("");
       const res = await api.post("/upload/file", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
-      setForm((f) => ({ ...f, contractFile: res.data.url }));
-    } catch (err: any) {
+      setForm((f) => ({
+        ...f,
+        contractFile: res.data.url,
+      }));
+    } catch (err) {
       setError(err?.response?.data?.message || "Upload file thất bại");
     } finally {
       setUploadingFile(false);
     }
   };
-
-  const handleTransfer = async (e: React.FormEvent) => {
+  const handleTransfer = async (e) => {
     e.preventDefault();
     if (!selectedContract) return;
     if (!transferTenantId) {
@@ -199,78 +162,78 @@ export default function ContractsPage() {
       setSelectedContract(null);
       showToast("Đổi người đại diện thành công!");
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
+      setError(err?.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const handleOpenRenew = (contract) => {
+    // Ngày bắt đầu mới = ngày kết thúc cũ + 1 ngày
+    const oldEnd = contract.endDate ? new Date(contract.endDate) : new Date();
+    oldEnd.setDate(oldEnd.getDate() + 1);
+    setRenewForm({
+      startDate: oldEnd.toISOString().slice(0, 10),
+      endDate: "",
+    });
+    setOpenRenewModal(true);
+    setError("");
+  };
+  const handleRenew = async (e) => {
+    e.preventDefault();
+    if (!selectedContract) return;
+    if (renewForm.startDate >= renewForm.endDate) {
+      setError("Ngày kết thúc phải sau ngày bắt đầu");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setError("");
+
+      // Tạo contract MỚI thay vì update
+      await api.post("/contracts", {
+        roomId: selectedContract.roomId._id,
+        tenantId: selectedContract.tenantId._id,
+        startDate: renewForm.startDate,
+        endDate: renewForm.endDate,
+        rentPrice: selectedContract.rentPrice,
+        deposit: selectedContract.deposit,
+        note: selectedContract.note,
+        isRenewal: true,
+      });
+      setOpenRenewModal(false);
+      setRenewForm({
+        startDate: "",
+        endDate: "",
+      });
+      setSelectedContract(null);
+      showToast("Gia hạn hợp đồng thành công!");
+      fetchData();
+    } catch (err) {
       setError(err?.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleOpenRenew = (contract: Contract) => {
-    // Ngày bắt đầu mới = ngày kết thúc cũ + 1 ngày
-    const oldEnd = contract.endDate ? new Date(contract.endDate) : new Date();
-    oldEnd.setDate(oldEnd.getDate() + 1);
-    setRenewForm({
-      startDate: oldEnd.toISOString().slice(0, 10),
-      endDate:   "",
-    });
-    setOpenRenewModal(true);
-    setError("");
-  };
-
-  const handleRenew = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!selectedContract) return;
-  if (renewForm.startDate >= renewForm.endDate) {
-    setError("Ngày kết thúc phải sau ngày bắt đầu");
-    return;
-  }
-  try {
-    setSubmitting(true);
-    setError("");
-
-    // Tạo contract MỚI thay vì update
-    await api.post("/contracts", {
-      roomId:    selectedContract.roomId._id,
-      tenantId:  selectedContract.tenantId._id,
-      startDate: renewForm.startDate,
-      endDate:   renewForm.endDate,
-      rentPrice: selectedContract.rentPrice,
-      deposit:   selectedContract.deposit,
-      note:      selectedContract.note,
-      isRenewal: true, 
-    });
-
-    setOpenRenewModal(false);
-    setRenewForm({ startDate: "", endDate: "" });
-    setSelectedContract(null);
-    showToast("Gia hạn hợp đồng thành công!");
-    fetchData();
-  } catch (err: any) {
-    setError(err?.response?.data?.message || "Có lỗi xảy ra");
-  } finally {
-    setSubmitting(false);
-  }
-};
-
   // Floors
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
 
   // Phòng đang có hợp đồng active → không cho ký thêm (mỗi phòng 1 hợp đồng active)
   const activeContractRoomIds = new Set(
-    contracts.filter((c) => c.status === "active").map((c) => c.roomId?._id)
+    contracts.filter((c) => c.status === "active").map((c) => c.roomId?._id),
   );
 
   // Hiện phòng chưa có hợp đồng active (kể cả phòng đã có khách ở nhưng chưa ký HĐ)
   const filteredRooms = rooms.filter(
-  (r) =>
-    !activeContractRoomIds.has(r._id) &&
-    (selectedFloor ? r.floor === Number(selectedFloor) : true)
-);
+    (r) =>
+      !activeContractRoomIds.has(r._id) &&
+      (selectedFloor ? r.floor === Number(selectedFloor) : true),
+  );
 
   // Filtered tenants theo phòng đã chọn
   const filteredTenants = tenants.filter((t) =>
-    form.roomId ? t.roomId?._id === form.roomId : true
+    form.roomId ? t.roomId?._id === form.roomId : true,
   );
 
   // Search + filter
@@ -281,7 +244,6 @@ export default function ContractsPage() {
     const matchStatus = filterStatus ? c.status === filterStatus : true;
     return matchSearch && matchStatus;
   });
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -289,7 +251,6 @@ export default function ContractsPage() {
       </div>
     );
   }
-
   return (
     <div>
       {/* Header */}
@@ -297,8 +258,8 @@ export default function ContractsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Hợp đồng</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            {contracts.filter((c) => c.status === "active").length} đang active •{" "}
-            {contracts.length} tổng
+            {contracts.filter((c) => c.status === "active").length} đang active • {contracts.length}{" "}
+            tổng
           </p>
         </div>
         <Button
@@ -364,7 +325,9 @@ export default function ContractsPage() {
                   <p className="text-indigo-600 font-semibold text-sm">
                     {contract.rentPrice.toLocaleString("vi-VN")}đ/tháng
                   </p>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[contract.status].class}`}>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[contract.status].class}`}
+                  >
                     {statusConfig[contract.status].label}
                   </span>
                 </div>
@@ -375,10 +338,17 @@ export default function ContractsPage() {
       )}
 
       {/* Modal tạo hợp đồng */}
-      <Dialog open={openModal} onOpenChange={(open) => {
-        setOpenModal(open);
-        if (!open) { setForm(defaultForm); setSelectedFloor(""); setError(""); }
-      }}>
+      <Dialog
+        open={openModal}
+        onOpenChange={(open) => {
+          setOpenModal(open);
+          if (!open) {
+            setForm(defaultForm);
+            setSelectedFloor("");
+            setError("");
+          }
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-lg">
           <DialogHeader>
             <DialogTitle>Tạo hợp đồng mới</DialogTitle>
@@ -389,12 +359,21 @@ export default function ContractsPage() {
                 <Label>Tầng</Label>
                 <select
                   value={selectedFloor}
-                  onChange={(e) => { setSelectedFloor(e.target.value); setForm({ ...form, roomId: "", tenantId: "" }); }}
+                  onChange={(e) => {
+                    setSelectedFloor(e.target.value);
+                    setForm({
+                      ...form,
+                      roomId: "",
+                      tenantId: "",
+                    });
+                  }}
                   className={selectClass}
                 >
                   <option value="">Tất cả tầng</option>
                   {floors.map((f) => (
-                    <option key={f} value={f}>Tầng {f}</option>
+                    <option key={f} value={f}>
+                      Tầng {f}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -404,14 +383,20 @@ export default function ContractsPage() {
                   value={form.roomId}
                   onChange={(e) => {
                     const room = rooms.find((r) => r._id === e.target.value);
-                    setForm({ ...form, roomId: e.target.value, rentPrice: String(room?.price || "") });
+                    setForm({
+                      ...form,
+                      roomId: e.target.value,
+                      rentPrice: String(room?.price || ""),
+                    });
                   }}
                   className={selectClass}
                   required
                 >
                   <option value="">Chọn phòng</option>
                   {filteredRooms.map((r) => (
-                    <option key={r._id} value={r._id}>Phòng {r.roomNumber}</option>
+                    <option key={r._id} value={r._id}>
+                      Phòng {r.roomNumber}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -421,13 +406,20 @@ export default function ContractsPage() {
               <Label>Khách thuê (người đại diện)</Label>
               <select
                 value={form.tenantId}
-                onChange={(e) => setForm({ ...form, tenantId: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    tenantId: e.target.value,
+                  })
+                }
                 className={selectClass}
                 required
               >
                 <option value="">Chọn khách thuê</option>
                 {filteredTenants.map((t) => (
-                  <option key={t._id} value={t._id}>{t.fullName} — {t.phone}</option>
+                  <option key={t._id} value={t._id}>
+                    {t.fullName} — {t.phone}
+                  </option>
                 ))}
               </select>
             </div>
@@ -435,33 +427,79 @@ export default function ContractsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Ngày bắt đầu</Label>
-                <Input type="date" value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
+                <Input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      startDate: e.target.value,
+                    })
+                  }
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Ngày kết thúc</Label>
-                <Input type="date" value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+                <Input
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      endDate: e.target.value,
+                    })
+                  }
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Giá thuê (đ/tháng)</Label>
-                <Input type="number" min={1} placeholder="2500000" value={form.rentPrice}
-                  onChange={(e) => setForm({ ...form, rentPrice: e.target.value })} required />
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="2500000"
+                  value={form.rentPrice}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      rentPrice: e.target.value,
+                    })
+                  }
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Tiền cọc</Label>
-                <Input type="number" min={0} placeholder="2500000" value={form.deposit}
-                  onChange={(e) => setForm({ ...form, deposit: e.target.value })} />
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="2500000"
+                  value={form.deposit}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      deposit: e.target.value,
+                    })
+                  }
+                />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label>Ghi chú</Label>
-              <Input placeholder="..." value={form.note}
-                onChange={(e) => setForm({ ...form, note: e.target.value })} />
+              <Input
+                placeholder="..."
+                value={form.note}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    note: e.target.value,
+                  })
+                }
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -474,19 +512,43 @@ export default function ContractsPage() {
               />
               {uploadingFile && <p className="text-xs text-slate-400">Đang tải file lên...</p>}
               {form.contractFile && !uploadingFile && (
-                <a href={form.contractFile} target="_blank" rel="noreferrer"
-                  className="text-xs text-indigo-600 underline">
+                <a
+                  href={form.contractFile}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-indigo-600 underline"
+                >
                   Đã tải lên — xem file
                 </a>
               )}
             </div>
 
-            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+            )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setOpenModal(false)}>Hủy</Button>
-              <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" disabled={submitting}>
-                {submitting ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Đang lưu...</span> : "Tạo hợp đồng"}
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setOpenModal(false)}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang lưu...
+                  </span>
+                ) : (
+                  "Tạo hợp đồng"
+                )}
               </Button>
             </div>
           </form>
@@ -494,7 +556,12 @@ export default function ContractsPage() {
       </Dialog>
 
       {/* Modal chi tiết hợp đồng */}
-      <Dialog open={!!selectedContract} onOpenChange={(open) => { if (!open) setSelectedContract(null); }}>
+      <Dialog
+        open={!!selectedContract}
+        onOpenChange={(open) => {
+          if (!open) setSelectedContract(null);
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle>Hợp đồng phòng {selectedContract?.roomId?.roomNumber}</DialogTitle>
@@ -503,12 +570,30 @@ export default function ContractsPage() {
             <div className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Khách thuê",    value: selectedContract.tenantId?.fullName },
-                  { label: "Số điện thoại", value: selectedContract.tenantId?.phone },
-                  { label: "Ngày bắt đầu",  value: formatDate(selectedContract.startDate) },
-                  { label: "Ngày kết thúc", value: formatDate(selectedContract.endDate) },
-                  { label: "Giá thuê",      value: `${selectedContract.rentPrice.toLocaleString("vi-VN")}đ/tháng` },
-                  { label: "Tiền cọc",      value: `${selectedContract.deposit.toLocaleString("vi-VN")}đ` },
+                  {
+                    label: "Khách thuê",
+                    value: selectedContract.tenantId?.fullName,
+                  },
+                  {
+                    label: "Số điện thoại",
+                    value: selectedContract.tenantId?.phone,
+                  },
+                  {
+                    label: "Ngày bắt đầu",
+                    value: formatDate(selectedContract.startDate),
+                  },
+                  {
+                    label: "Ngày kết thúc",
+                    value: formatDate(selectedContract.endDate),
+                  },
+                  {
+                    label: "Giá thuê",
+                    value: `${selectedContract.rentPrice.toLocaleString("vi-VN")}đ/tháng`,
+                  },
+                  {
+                    label: "Tiền cọc",
+                    value: `${selectedContract.deposit.toLocaleString("vi-VN")}đ`,
+                  },
                 ].map((item) => (
                   <div key={item.label} className="bg-slate-50 rounded-xl p-3">
                     <p className="text-xs text-slate-400">{item.label}</p>
@@ -537,7 +622,9 @@ export default function ContractsPage() {
               )}
 
               <div className="flex items-center gap-2">
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[selectedContract.status].class}`}>
+                <span
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig[selectedContract.status].class}`}
+                >
                   {statusConfig[selectedContract.status].label}
                 </span>
               </div>
@@ -547,7 +634,11 @@ export default function ContractsPage() {
                   <Button
                     variant="outline"
                     className="w-full border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                    onClick={() => { setTransferTenantId(""); setError(""); setOpenTransferModal(true); }}
+                    onClick={() => {
+                      setTransferTenantId("");
+                      setError("");
+                      setOpenTransferModal(true);
+                    }}
                   >
                     Đổi người đại diện
                   </Button>
@@ -575,16 +666,24 @@ export default function ContractsPage() {
       </Dialog>
 
       {/* Modal gia hạn hợp đồng */}
-      <Dialog open={openRenewModal} onOpenChange={(open) => {
-        setOpenRenewModal(open);
-        if (!open) { setError(""); setRenewForm({ startDate: "", endDate: "" }); }
-      }}>
+      <Dialog
+        open={openRenewModal}
+        onOpenChange={(open) => {
+          setOpenRenewModal(open);
+          if (!open) {
+            setError("");
+            setRenewForm({
+              startDate: "",
+              endDate: "",
+            });
+          }
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Gia hạn hợp đồng</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleRenew} className="space-y-4 mt-2">
-
             {/* Thông tin hợp đồng cũ */}
             <div className="bg-slate-50 rounded-xl p-3 text-sm text-slate-500">
               Hợp đồng cũ kết thúc:{" "}
@@ -600,7 +699,12 @@ export default function ContractsPage() {
               <Input
                 type="date"
                 value={renewForm.startDate}
-                onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })}
+                onChange={(e) =>
+                  setRenewForm({
+                    ...renewForm,
+                    startDate: e.target.value,
+                  })
+                }
                 required
               />
             </div>
@@ -610,21 +714,34 @@ export default function ContractsPage() {
               <Input
                 type="date"
                 value={renewForm.endDate}
-                onChange={(e) => setRenewForm({ ...renewForm, endDate: e.target.value })}
+                onChange={(e) =>
+                  setRenewForm({
+                    ...renewForm,
+                    endDate: e.target.value,
+                  })
+                }
                 required
               />
             </div>
 
-            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+            )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1"
-                onClick={() => setOpenRenewModal(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setOpenRenewModal(false)}
+              >
                 Hủy
               </Button>
-              <Button type="submit"
+              <Button
+                type="submit"
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                disabled={submitting}>
+                disabled={submitting}
+              >
                 {submitting ? "Đang lưu..." : "Gia hạn"}
               </Button>
             </div>
@@ -633,10 +750,16 @@ export default function ContractsPage() {
       </Dialog>
 
       {/* Modal đổi người đại diện */}
-      <Dialog open={openTransferModal} onOpenChange={(open) => {
-        setOpenTransferModal(open);
-        if (!open) { setError(""); setTransferTenantId(""); }
-      }}>
+      <Dialog
+        open={openTransferModal}
+        onOpenChange={(open) => {
+          setOpenTransferModal(open);
+          if (!open) {
+            setError("");
+            setTransferTenantId("");
+          }
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Đổi người đại diện</DialogTitle>
@@ -645,7 +768,7 @@ export default function ContractsPage() {
             const roomMates = tenants.filter(
               (t) =>
                 t.roomId?._id === selectedContract?.roomId?._id &&
-                t._id !== selectedContract?.tenantId?._id
+                t._id !== selectedContract?.tenantId?._id,
             );
             return (
               <form onSubmit={handleTransfer} className="space-y-4 mt-2">
@@ -658,8 +781,8 @@ export default function ContractsPage() {
 
                 {roomMates.length === 0 ? (
                   <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-xl">
-                    Phòng này không còn khách nào khác đang ở. Hãy thêm khách vào phòng
-                    trước, hoặc dùng “Kết thúc” nếu cả phòng dọn đi.
+                    Phòng này không còn khách nào khác đang ở. Hãy thêm khách vào phòng trước, hoặc
+                    dùng “Kết thúc” nếu cả phòng dọn đi.
                   </p>
                 ) : (
                   <div className="space-y-1.5">
@@ -683,16 +806,24 @@ export default function ContractsPage() {
                   </div>
                 )}
 
-                {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+                {error && (
+                  <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+                )}
 
                 <div className="flex gap-3 pt-2">
-                  <Button type="button" variant="outline" className="flex-1"
-                    onClick={() => setOpenTransferModal(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setOpenTransferModal(false)}
+                  >
                     Hủy
                   </Button>
-                  <Button type="submit"
+                  <Button
+                    type="submit"
                     className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                    disabled={submitting || roomMates.length === 0}>
+                    disabled={submitting || roomMates.length === 0}
+                  >
                     {submitting ? "Đang lưu..." : "Xác nhận"}
                   </Button>
                 </div>

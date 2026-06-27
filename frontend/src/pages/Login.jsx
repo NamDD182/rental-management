@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
@@ -6,15 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Building2, Eye, EyeOff, Loader2, Users, Receipt, ShieldCheck } from "lucide-react";
-
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
@@ -22,35 +22,50 @@ export default function LoginPage() {
       const res = await api.post("/auth/login", form);
       localStorage.setItem("token", res.data.token);
       navigate("/");
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.response?.data?.message || "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div
       className="relative min-h-screen overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)" }}
+      style={{
+        background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+      }}
     >
       {/* Glow */}
-      <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full blur-[140px]"
-        style={{ background: "rgba(99,102,241,0.3)" }} />
-      <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full blur-[120px]"
-        style={{ background: "rgba(139,92,246,0.2)" }} />
-      <div className="absolute -bottom-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full blur-[150px]"
-        style={{ background: "rgba(99,102,241,0.25)" }} />
+      <div
+        className="absolute -top-32 -left-32 h-96 w-96 rounded-full blur-[140px]"
+        style={{
+          background: "rgba(99,102,241,0.3)",
+        }}
+      />
+      <div
+        className="absolute top-1/3 -right-20 h-80 w-80 rounded-full blur-[120px]"
+        style={{
+          background: "rgba(139,92,246,0.2)",
+        }}
+      />
+      <div
+        className="absolute -bottom-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full blur-[150px]"
+        style={{
+          background: "rgba(99,102,241,0.25)",
+        }}
+      />
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-6">
         <div className="grid w-full max-w-6xl gap-10 lg:grid-cols-2">
-
           {/* LEFT */}
           <div className="hidden lg:flex flex-col justify-center text-white">
             <div className="mb-6 flex items-center gap-3">
               <div
                 className="flex h-14 w-14 items-center justify-center rounded-2xl backdrop-blur-xl"
-                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}
               >
                 <Building2 className="h-7 w-7 text-indigo-400" />
               </div>
@@ -72,14 +87,29 @@ export default function LoginPage() {
 
             <div className="mt-10 grid grid-cols-3 gap-4">
               {[
-                { icon: Users, label: "Khách thuê", sub: "Quản lý cư dân" },
-                { icon: Receipt, label: "Hóa đơn", sub: "Tự động tính phí" },
-                { icon: ShieldCheck, label: "Bảo mật", sub: "Đăng nhập an toàn" },
+                {
+                  icon: Users,
+                  label: "Khách thuê",
+                  sub: "Quản lý cư dân",
+                },
+                {
+                  icon: Receipt,
+                  label: "Hóa đơn",
+                  sub: "Tự động tính phí",
+                },
+                {
+                  icon: ShieldCheck,
+                  label: "Bảo mật",
+                  sub: "Đăng nhập an toàn",
+                },
               ].map(({ icon: Icon, label, sub }) => (
                 <div
                   key={label}
                   className="rounded-3xl p-5 backdrop-blur-xl"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
                 >
                   <Icon className="w-6 h-6 text-indigo-400 mb-3" />
                   <p className="font-semibold text-white text-sm">{label}</p>
@@ -102,14 +132,19 @@ export default function LoginPage() {
               {/* Glass highlight */}
               <div
                 className="pointer-events-none absolute inset-0 rounded-[36px]"
-                style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%)" }}
+                style={{
+                  background: "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%)",
+                }}
               />
 
               <div className="relative">
                 <div className="mb-8 text-center">
                   <div
                     className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl backdrop-blur-xl"
-                    style={{ background: "rgba(99,102,241,0.2)", border: "1px solid rgba(99,102,241,0.3)" }}
+                    style={{
+                      background: "rgba(99,102,241,0.2)",
+                      border: "1px solid rgba(99,102,241,0.3)",
+                    }}
                   >
                     <Building2 className="h-8 w-8 text-indigo-400" />
                   </div>
@@ -124,9 +159,17 @@ export default function LoginPage() {
                       type="email"
                       placeholder="admin@gmail.com"
                       value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          email: e.target.value,
+                        })
+                      }
                       className="h-12 rounded-2xl text-white placeholder:text-white/30"
-                      style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                      }}
                       required
                     />
                   </div>
@@ -138,9 +181,17 @@ export default function LoginPage() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={form.password}
-                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            password: e.target.value,
+                          })
+                        }
                         className="h-12 rounded-2xl pr-12 text-white placeholder:text-white/30"
-                        style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                        }}
                         required
                       />
                       <button
@@ -148,7 +199,11 @@ export default function LoginPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
                       >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -156,7 +211,10 @@ export default function LoginPage() {
                   {error && (
                     <div
                       className="rounded-2xl p-3 text-sm text-red-200"
-                      style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.25)" }}
+                      style={{
+                        background: "rgba(239,68,68,0.15)",
+                        border: "1px solid rgba(239,68,68,0.25)",
+                      }}
                     >
                       {error}
                     </div>
@@ -166,14 +224,18 @@ export default function LoginPage() {
                     type="submit"
                     disabled={loading}
                     className="h-12 w-full rounded-2xl font-semibold text-white hover:opacity-90 transition-opacity"
-                    style={{ background: "linear-gradient(135deg, #818cf8, #6366f1)" }}
+                    style={{
+                      background: "linear-gradient(135deg, #818cf8, #6366f1)",
+                    }}
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Đang đăng nhập...
                       </span>
-                    ) : "Đăng nhập"}
+                    ) : (
+                      "Đăng nhập"
+                    )}
                   </Button>
                 </form>
 
@@ -181,7 +243,6 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

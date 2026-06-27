@@ -7,7 +7,6 @@ import Contracts from "@/pages/Contracts";
 import Invoices from "@/pages/Invoices";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
-
 export default function App() {
   return (
     <Routes>

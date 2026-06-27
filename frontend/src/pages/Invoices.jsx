@@ -3,62 +3,27 @@ import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Receipt, Loader2, Search } from "lucide-react";
-
-interface Contract {
-  _id: string;
-  roomId: { _id: string; roomNumber: string; floor: number };
-  tenantId: { _id: string; fullName: string };
-  rentPrice: number;
-  status: string;
-}
-
-interface Invoice {
-  _id: string;
-  contractId: {
-    _id: string;
-    roomId: { roomNumber: string };
-    tenantId: { fullName: string };
-  };
-  roomId: { roomNumber: string };
-  month: number;
-  year: number;
-  rentAmount: number;
-  electricOld: number;
-  electricNew: number;
-  electricPrice: number;
-  electricAmount: number;
-  currentPeople: number;
-  waterPerPerson: number;
-  waterAmount: number;
-  serviceAmount: number;
-  vehicleFee: number;
-  totalAmount: number;
-  status: "unpaid" | "paid" | "overdue";
-  paymentMethod: "cash" | "bank_transfer" | null;
-  transferImageUrl: string | null;
-  paidAt: string | null;
-  note: string;
-}
-
 const statusConfig = {
-  unpaid: { label: "Chưa thu", class: "bg-amber-100 text-amber-700" },
-  paid: { label: "Đã thu", class: "bg-emerald-100 text-emerald-700" },
-  overdue: { label: "Quá hạn", class: "bg-red-100 text-red-600" },
+  unpaid: {
+    label: "Chưa thu",
+    class: "bg-amber-100 text-amber-700",
+  },
+  paid: {
+    label: "Đã thu",
+    class: "bg-emerald-100 text-emerald-700",
+  },
+  overdue: {
+    label: "Quá hạn",
+    class: "bg-red-100 text-red-600",
+  },
 };
-
-const paymentMethodLabel: Record<string, string> = {
+const paymentMethodLabel = {
   cash: "Tiền mặt",
   bank_transfer: "Chuyển khoản",
   qr: "QR Code",
 };
-
 const defaultForm = {
   contractId: "",
   month: String(new Date().getMonth() + 1),
@@ -70,13 +35,11 @@ const defaultForm = {
   vehicleFee: "0",
   note: "",
 };
-
 const selectClass =
   "w-full h-10 rounded-md border border-input px-3 text-sm bg-background text-foreground";
-
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [invoices, setInvoices] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -89,29 +52,23 @@ export default function InvoicesPage() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("");
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(
-    null,
-  );
+  const [selectedContract, setSelectedContract] = useState(null);
   const [contractPeople, setContractPeople] = useState(0);
 
   // Modal chi tiết
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   // Modal thanh toán
   const [openPayModal, setOpenPayModal] = useState(false);
-  const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
+  const [payingInvoice, setPayingInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
-
-  const [transferImage, setTransferImage] = useState<File | null>(null);
-  const [transferPreview, setTransferPreview] = useState<string>("");
+  const [transferImage, setTransferImage] = useState(null);
+  const [transferPreview, setTransferPreview] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
-
-  const [viewImage, setViewImage] = useState<string>("");
-
+  const [viewImage, setViewImage] = useState("");
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
       const [invoicesRes, contractsRes] = await Promise.all([
@@ -119,23 +76,22 @@ export default function InvoicesPage() {
         api.get("/contracts"),
       ]);
       setInvoices(invoicesRes.data);
-      setContracts(
-        contractsRes.data.filter((c: Contract) => c.status === "active"),
-      );
+      setContracts(contractsRes.data.filter((c) => c.status === "active"));
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
-
-  const showToast = (msg: string) => {
+  const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
-
-  const handleSelectContract = async (contractId: string) => {
-    setForm((f) => ({ ...f, contractId }));
+  const handleSelectContract = async (contractId) => {
+    setForm((f) => ({
+      ...f,
+      contractId,
+    }));
     const contract = contracts.find((c) => c._id === contractId) || null;
     setSelectedContract(contract);
     if (contract) {
@@ -147,8 +103,7 @@ export default function InvoicesPage() {
       }
     }
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (Number(form.electricNew) < Number(form.electricOld)) {
       setError("Chỉ số điện mới phải lớn hơn chỉ số cũ");
@@ -175,22 +130,18 @@ export default function InvoicesPage() {
       setContractPeople(0);
       showToast("Tạo hóa đơn thành công!");
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       const msg = err?.response?.data?.message || "Có lỗi xảy ra";
-      setError(
-        msg.includes("duplicate") ? "Hóa đơn tháng này đã tồn tại" : msg,
-      );
+      setError(msg.includes("duplicate") ? "Hóa đơn tháng này đã tồn tại" : msg);
     } finally {
       setSubmitting(false);
     }
   };
-
-  const handlePay = async (e: React.FormEvent) => {
+  const handlePay = async (e) => {
     e.preventDefault();
     if (!payingInvoice) return;
     try {
       setSubmitting(true);
-
       let transferImageUrl = null;
 
       // Upload ảnh nếu có
@@ -199,17 +150,17 @@ export default function InvoicesPage() {
         const formData = new FormData();
         formData.append("image", transferImage);
         const uploadRes = await api.post("/upload/image", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
         transferImageUrl = uploadRes.data.url;
         setUploadingImage(false);
       }
-
       await api.put(`/invoices/${payingInvoice._id}/pay`, {
         paymentMethod,
         transferImageUrl,
       });
-
       setOpenPayModal(false);
       setPayingInvoice(null);
       setSelectedInvoice(null);
@@ -218,7 +169,7 @@ export default function InvoicesPage() {
       setPaymentMethod("cash");
       showToast("Đã thu tiền thành công!");
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       alert(err?.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
@@ -229,16 +180,15 @@ export default function InvoicesPage() {
   // Preview tổng tiền
   const previewTotal =
     (selectedContract?.rentPrice || 0) +
-    (Number(form.electricNew) - Number(form.electricOld)) *
-      Number(form.electricPrice) +
+    (Number(form.electricNew) - Number(form.electricOld)) * Number(form.electricPrice) +
     contractPeople * 50000 +
     Number(form.serviceAmount || 150000) +
     Number(form.vehicleFee || 0);
 
   // Floors từ contracts active
-  const floors = [
-    ...new Set(contracts.map((c) => c.roomId?.floor).filter(Boolean)),
-  ].sort((a, b) => a - b);
+  const floors = [...new Set(contracts.map((c) => c.roomId?.floor).filter(Boolean))].sort(
+    (a, b) => a - b,
+  );
 
   // Filter contracts theo tầng
   const filteredContracts = contracts.filter((c) =>
@@ -252,16 +202,11 @@ export default function InvoicesPage() {
   const filtered = invoices.filter((inv) => {
     const matchSearch =
       inv.contractId?.roomId?.roomNumber?.toString().includes(search) ||
-      inv.contractId?.tenantId?.fullName
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
+      inv.contractId?.tenantId?.fullName?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus ? inv.status === filterStatus : true;
-    const matchMonth = filterMonth
-      ? `${inv.month}/${inv.year}` === filterMonth
-      : true;
+    const matchMonth = filterMonth ? `${inv.month}/${inv.year}` === filterMonth : true;
     return matchSearch && matchStatus && matchMonth;
   });
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -269,7 +214,6 @@ export default function InvoicesPage() {
       </div>
     );
   }
-
   return (
     <div>
       {/* Header */}
@@ -277,8 +221,8 @@ export default function InvoicesPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Hóa đơn</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            {invoices.filter((i) => i.status === "unpaid" || i.status === "overdue").length} chưa thu •{" "}
-            {invoices.length} tổng
+            {invoices.filter((i) => i.status === "unpaid" || i.status === "overdue").length} chưa
+            thu • {invoices.length} tổng
           </p>
         </div>
         <Button
@@ -346,8 +290,8 @@ export default function InvoicesPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">
-                      Phòng {invoice.contractId?.roomId?.roomNumber} — Tháng{" "}
-                      {invoice.month}/{invoice.year}
+                      Phòng {invoice.contractId?.roomId?.roomNumber} — Tháng {invoice.month}/
+                      {invoice.year}
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {invoice.contractId?.tenantId?.fullName}
@@ -400,7 +344,10 @@ export default function InvoicesPage() {
                   value={selectedFloor}
                   onChange={(e) => {
                     setSelectedFloor(e.target.value);
-                    setForm({ ...form, contractId: "" });
+                    setForm({
+                      ...form,
+                      contractId: "",
+                    });
                     setSelectedContract(null);
                   }}
                   className={selectClass}
@@ -437,10 +384,20 @@ export default function InvoicesPage() {
                 <Label>Tháng</Label>
                 <select
                   value={form.month}
-                  onChange={(e) => setForm({ ...form, month: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      month: e.target.value,
+                    })
+                  }
                   className={selectClass}
                 >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  {Array.from(
+                    {
+                      length: 12,
+                    },
+                    (_, i) => i + 1,
+                  ).map((m) => (
                     <option key={m} value={m}>
                       Tháng {m}
                     </option>
@@ -452,7 +409,12 @@ export default function InvoicesPage() {
                 <Input
                   type="number"
                   value={form.year}
-                  onChange={(e) => setForm({ ...form, year: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      year: e.target.value,
+                    })
+                  }
                   required
                 />
               </div>
@@ -470,7 +432,10 @@ export default function InvoicesPage() {
                     placeholder="100"
                     value={form.electricOld}
                     onChange={(e) =>
-                      setForm({ ...form, electricOld: e.target.value })
+                      setForm({
+                        ...form,
+                        electricOld: e.target.value,
+                      })
                     }
                     required
                   />
@@ -483,7 +448,10 @@ export default function InvoicesPage() {
                     placeholder="250"
                     value={form.electricNew}
                     onChange={(e) =>
-                      setForm({ ...form, electricNew: e.target.value })
+                      setForm({
+                        ...form,
+                        electricNew: e.target.value,
+                      })
                     }
                     required
                   />
@@ -495,7 +463,10 @@ export default function InvoicesPage() {
                     min={1}
                     value={form.electricPrice}
                     onChange={(e) =>
-                      setForm({ ...form, electricPrice: e.target.value })
+                      setForm({
+                        ...form,
+                        electricPrice: e.target.value,
+                      })
                     }
                     required
                   />
@@ -513,7 +484,10 @@ export default function InvoicesPage() {
                   placeholder="150000"
                   value={form.serviceAmount}
                   onChange={(e) =>
-                    setForm({ ...form, serviceAmount: e.target.value })
+                    setForm({
+                      ...form,
+                      serviceAmount: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -525,7 +499,10 @@ export default function InvoicesPage() {
                   placeholder="0"
                   value={form.vehicleFee}
                   onChange={(e) =>
-                    setForm({ ...form, vehicleFee: e.target.value })
+                    setForm({
+                      ...form,
+                      vehicleFee: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -537,59 +514,59 @@ export default function InvoicesPage() {
               <Input
                 placeholder="..."
                 value={form.note}
-                onChange={(e) => setForm({ ...form, note: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    note: e.target.value,
+                  })
+                }
               />
             </div>
 
             {/* Preview tổng tiền */}
-            {selectedContract &&
-              form.electricOld !== "" &&
-              form.electricNew !== "" && (
-                <div className="bg-indigo-50 rounded-xl p-4 space-y-2 border border-indigo-100">
-                  <p className="text-xs font-semibold text-indigo-600 mb-2">
-                    Dự tính hóa đơn
-                  </p>
-                  {[
-                    { label: "Tiền phòng", value: selectedContract.rentPrice },
-                    {
-                      label: "Tiền điện",
-                      value:
-                        (Number(form.electricNew) - Number(form.electricOld)) *
-                        Number(form.electricPrice),
-                    },
-                    {
-                      label: `Tiền nước (${contractPeople} người)`,
-                      value: contractPeople * 50000,
-                    },
-                    {
-                      label: "Phí dịch vụ",
-                      value: Number(form.serviceAmount || 150000),
-                    },
-                    { label: "Phí xe", value: Number(form.vehicleFee || 0) },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-slate-500">{item.label}</span>
-                      <span className="font-medium text-slate-700">
-                        {item.value.toLocaleString("vi-VN")}đ
-                      </span>
-                    </div>
-                  ))}
-                  <div className="border-t border-indigo-200 pt-2 flex justify-between font-semibold">
-                    <span className="text-slate-800">Tổng</span>
-                    <span className="text-indigo-600">
-                      {previewTotal.toLocaleString("vi-VN")}đ
+            {selectedContract && form.electricOld !== "" && form.electricNew !== "" && (
+              <div className="bg-indigo-50 rounded-xl p-4 space-y-2 border border-indigo-100">
+                <p className="text-xs font-semibold text-indigo-600 mb-2">Dự tính hóa đơn</p>
+                {[
+                  {
+                    label: "Tiền phòng",
+                    value: selectedContract.rentPrice,
+                  },
+                  {
+                    label: "Tiền điện",
+                    value:
+                      (Number(form.electricNew) - Number(form.electricOld)) *
+                      Number(form.electricPrice),
+                  },
+                  {
+                    label: `Tiền nước (${contractPeople} người)`,
+                    value: contractPeople * 50000,
+                  },
+                  {
+                    label: "Phí dịch vụ",
+                    value: Number(form.serviceAmount || 150000),
+                  },
+                  {
+                    label: "Phí xe",
+                    value: Number(form.vehicleFee || 0),
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="flex justify-between text-sm">
+                    <span className="text-slate-500">{item.label}</span>
+                    <span className="font-medium text-slate-700">
+                      {item.value.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
+                ))}
+                <div className="border-t border-indigo-200 pt-2 flex justify-between font-semibold">
+                  <span className="text-slate-800">Tổng</span>
+                  <span className="text-indigo-600">{previewTotal.toLocaleString("vi-VN")}đ</span>
                 </div>
-              )}
+              </div>
+            )}
 
             {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">
-                {error}
-              </p>
+              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
             )}
 
             <div className="flex gap-3 pt-2">
@@ -627,14 +604,11 @@ export default function InvoicesPage() {
           if (!open) setSelectedInvoice(null);
         }}
       >
-        <DialogContent
-          aria-describedby={undefined}
-          className="rounded-2xl max-w-md"
-        >
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Hóa đơn tháng {selectedInvoice?.month}/{selectedInvoice?.year} —
-              Phòng {selectedInvoice?.contractId?.roomId?.roomNumber}
+              Hóa đơn tháng {selectedInvoice?.month}/{selectedInvoice?.year} — Phòng{" "}
+              {selectedInvoice?.contractId?.roomId?.roomNumber}
             </DialogTitle>
           </DialogHeader>
           {selectedInvoice && (
@@ -642,7 +616,10 @@ export default function InvoicesPage() {
               {/* Chi tiết từng khoản */}
               <div className="bg-slate-50 rounded-xl p-4 space-y-2">
                 {[
-                  { label: "Tiền phòng", value: selectedInvoice.rentAmount },
+                  {
+                    label: "Tiền phòng",
+                    value: selectedInvoice.rentAmount,
+                  },
                   {
                     label: `Điện (${selectedInvoice.electricNew - selectedInvoice.electricOld} kWh × ${selectedInvoice.electricPrice.toLocaleString("vi-VN")}đ)`,
                     value: selectedInvoice.electricAmount,
@@ -655,15 +632,13 @@ export default function InvoicesPage() {
                     label: "Phí dịch vụ",
                     value: selectedInvoice.serviceAmount,
                   },
-                  { label: "Phí xe", value: selectedInvoice.vehicleFee || 0 },
+                  {
+                    label: "Phí xe",
+                    value: selectedInvoice.vehicleFee || 0,
+                  },
                 ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex justify-between text-sm gap-4"
-                  >
-                    <span className="text-slate-500 whitespace-nowrap">
-                      {item.label}
-                    </span>
+                  <div key={item.label} className="flex justify-between text-sm gap-4">
+                    <span className="text-slate-500 whitespace-nowrap">{item.label}</span>
                     <span className="font-medium text-slate-700 whitespace-nowrap">
                       {item.value.toLocaleString("vi-VN")}đ
                     </span>
@@ -691,9 +666,7 @@ export default function InvoicesPage() {
                 )}
                 {selectedInvoice.paidAt && (
                   <span className="text-xs text-slate-400">
-                    {new Date(selectedInvoice.paidAt).toLocaleDateString(
-                      "vi-VN",
-                    )}
+                    {new Date(selectedInvoice.paidAt).toLocaleDateString("vi-VN")}
                   </span>
                 )}
               </div>
@@ -701,16 +674,14 @@ export default function InvoicesPage() {
               {/* Ảnh chuyển khoản — nằm dưới, chiều rộng vừa phải */}
               {selectedInvoice.transferImageUrl && (
                 <div className="space-y-1.5">
-                  <p className="text-xs text-slate-400 font-medium">
-                    Ảnh chuyển khoản
-                  </p>
+                  <p className="text-xs text-slate-400 font-medium">Ảnh chuyển khoản</p>
                   <img
                     src={selectedInvoice.transferImageUrl}
                     className="w-full max-h-52 rounded-xl object-contain border border-slate-100 bg-slate-50 cursor-zoom-in hover:opacity-90 transition-opacity"
                     alt="Ảnh chuyển khoản"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setViewImage(selectedInvoice.transferImageUrl!);
+                      setViewImage(selectedInvoice.transferImageUrl);
                     }}
                   />
                 </div>
@@ -750,10 +721,7 @@ export default function InvoicesPage() {
           }
         }}
       >
-        <DialogContent
-          aria-describedby={undefined}
-          className="rounded-2xl max-w-sm"
-        >
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Xác nhận thu tiền</DialogTitle>
           </DialogHeader>
@@ -790,8 +758,14 @@ export default function InvoicesPage() {
                 <Label>Phương thức thanh toán</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { value: "cash", label: "Tiền mặt" },
-                    { value: "bank_transfer", label: "Chuyển khoản" },
+                    {
+                      value: "cash",
+                      label: "Tiền mặt",
+                    },
+                    {
+                      value: "bank_transfer",
+                      label: "Chuyển khoản",
+                    },
                   ].map((m) => (
                     <button
                       key={m.value}
@@ -803,11 +777,7 @@ export default function InvoicesPage() {
                           setTransferPreview("");
                         }
                       }}
-                      className={`py-2.5 px-4 rounded-xl text-sm font-medium border transition-all ${
-                        paymentMethod === m.value
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
-                      }`}
+                      className={`py-2.5 px-4 rounded-xl text-sm font-medium border transition-all ${paymentMethod === m.value ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"}`}
                     >
                       {m.label}
                     </button>
@@ -817,11 +787,7 @@ export default function InvoicesPage() {
                 {/* Upload ảnh chuyển khoản */}
                 {paymentMethod === "bank_transfer" && (
                   <div
-                    className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
-                      transferPreview
-                        ? "border-indigo-300 bg-indigo-50"
-                        : "border-slate-200 hover:border-indigo-300"
-                    }`}
+                    className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${transferPreview ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:border-indigo-300"}`}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -831,9 +797,7 @@ export default function InvoicesPage() {
                         setTransferPreview(URL.createObjectURL(file));
                       }
                     }}
-                    onClick={() =>
-                      document.getElementById("transfer-upload")?.click()
-                    }
+                    onClick={() => document.getElementById("transfer-upload")?.click()}
                   >
                     {transferPreview ? (
                       <div className="space-y-2">
@@ -842,9 +806,7 @@ export default function InvoicesPage() {
                           className="max-h-40 mx-auto rounded-lg object-contain"
                           alt="Ảnh chuyển khoản"
                         />
-                        <p className="text-xs text-slate-400">
-                          Click để đổi ảnh
-                        </p>
+                        <p className="text-xs text-slate-400">Click để đổi ảnh</p>
                       </div>
                     ) : (
                       <div className="space-y-1.5 py-2">

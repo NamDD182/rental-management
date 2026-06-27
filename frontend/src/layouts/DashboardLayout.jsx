@@ -1,16 +1,10 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet, Link } from "react-router-dom";
 import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   LayoutDashboard,
   DoorOpen,
@@ -24,39 +18,53 @@ import {
   Lock,
   ChevronDown,
 } from "lucide-react";
-
 const navItems = [
-  { href: "/",          icon: LayoutDashboard, label: "Tổng quan" },
-  { href: "/rooms",     icon: DoorOpen,        label: "Phòng trọ" },
-  { href: "/tenants",   icon: Users,           label: "Khách thuê" },
-  { href: "/contracts", icon: FileText,        label: "Hợp đồng" },
-  { href: "/invoices",  icon: Receipt,         label: "Hóa đơn" },
+  {
+    href: "/",
+    icon: LayoutDashboard,
+    label: "Tổng quan",
+  },
+  {
+    href: "/rooms",
+    icon: DoorOpen,
+    label: "Phòng trọ",
+  },
+  {
+    href: "/tenants",
+    icon: Users,
+    label: "Khách thuê",
+  },
+  {
+    href: "/contracts",
+    icon: FileText,
+    label: "Hợp đồng",
+  },
+  {
+    href: "/invoices",
+    icon: Receipt,
+    label: "Hóa đơn",
+  },
 ];
-
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const pathname = useLocation().pathname;
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
+  const dropdownRef = useRef(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [openProfile,  setOpenProfile]  = useState(false);
+  const [openProfile, setOpenProfile] = useState(false);
   const [openPassword, setOpenPassword] = useState(false);
-  const [submitting,   setSubmitting]   = useState(false);
-  const [error,        setError]        = useState("");
-  const [toast,        setToast]        = useState("");
-
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
   const [profileForm, setProfileForm] = useState({
     username: "",
     phone: "",
   });
-
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -68,31 +76,28 @@ export default function DashboardLayout() {
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const fetchProfile = async () => {
     try {
       const res = await api.get("/auth/me");
       setProfileForm({
         username: res.data.username || "",
-        phone:    res.data.phone    || "",
+        phone: res.data.phone || "",
       });
     } catch {}
   };
-
-  const showToast = (msg: string) => {
+  const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
       setSubmitting(true);
@@ -100,14 +105,13 @@ export default function DashboardLayout() {
       await api.put("/auth/me", profileForm);
       setOpenProfile(false);
       showToast("Cập nhật thông tin thành công!");
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setError("Mật khẩu mới không khớp");
@@ -122,37 +126,38 @@ export default function DashboardLayout() {
       setError("");
       await api.put("/auth/password", {
         currentPassword: passwordForm.currentPassword,
-        newPassword:     passwordForm.newPassword,
+        newPassword: passwordForm.newPassword,
       });
       setOpenPassword(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       showToast("Đổi mật khẩu thành công!");
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
     }
   };
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
-
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-
       {/* Overlay mobile */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-black/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-30 flex w-64 flex-col transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed lg:static inset-y-0 left-0 z-30 flex w-64 flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{
           background: "rgba(255,255,255,0.8)",
           backdropFilter: "blur(20px)",
@@ -170,10 +175,11 @@ export default function DashboardLayout() {
           {navItems.map(({ href, icon: Icon, label }) => {
             const isActive = pathname === href;
             return (
-              <Link key={href} to={href} onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
-                  isActive ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                }`}
+              <Link
+                key={href}
+                to={href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${isActive ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}
               >
                 <Icon className={`h-5 w-5 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
                 {label}
@@ -189,16 +195,22 @@ export default function DashboardLayout() {
             <LogOut className="h-5 w-5" />
             Đăng xuất
           </button>
-        </div> */}
+         </div> */}
       </aside>
 
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center justify-between px-6 border-b border-slate-100"
-          style={{ background: "rgba(255,255,255,0.8)", backdropFilter: "blur(20px)" }}
+        <header
+          className="flex h-16 items-center justify-between px-6 border-b border-slate-100"
+          style={{
+            background: "rgba(255,255,255,0.8)",
+            backdropFilter: "blur(20px)",
+          }}
         >
-          <button className="lg:hidden text-slate-500 hover:text-slate-800"
-            onClick={() => setSidebarOpen(true)}>
+          <button
+            className="lg:hidden text-slate-500 hover:text-slate-800"
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </button>
 
@@ -217,21 +229,31 @@ export default function DashboardLayout() {
               <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
                 <span className="text-xs font-semibold text-indigo-600">A</span>
               </div>
-              <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-4 w-4 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {/* Dropdown */}
             {dropdownOpen && (
               <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden z-50">
                 <button
-                  onClick={() => { setDropdownOpen(false); setOpenProfile(true); setError(""); }}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setOpenProfile(true);
+                    setError("");
+                  }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-all"
                 >
                   <User className="h-4 w-4 text-slate-400" />
                   Thông tin cá nhân
                 </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); setOpenPassword(true); setError(""); }}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setOpenPassword(true);
+                    setError("");
+                  }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-all"
                 >
                   <Lock className="h-4 w-4 text-slate-400" />
@@ -256,7 +278,13 @@ export default function DashboardLayout() {
       </div>
 
       {/* Modal thông tin cá nhân */}
-      <Dialog open={openProfile} onOpenChange={(open) => { setOpenProfile(open); if (!open) setError(""); }}>
+      <Dialog
+        open={openProfile}
+        onOpenChange={(open) => {
+          setOpenProfile(open);
+          if (!open) setError("");
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Thông tin cá nhân</DialogTitle>
@@ -266,7 +294,12 @@ export default function DashboardLayout() {
               <Label>Tên người dùng</Label>
               <Input
                 value={profileForm.username}
-                onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                onChange={(e) =>
+                  setProfileForm({
+                    ...profileForm,
+                    username: e.target.value,
+                  })
+                }
                 required
               />
             </div>
@@ -274,16 +307,32 @@ export default function DashboardLayout() {
               <Label>Số điện thoại</Label>
               <Input
                 value={profileForm.phone}
-                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                onChange={(e) =>
+                  setProfileForm({
+                    ...profileForm,
+                    phone: e.target.value,
+                  })
+                }
                 placeholder="0901234567"
               />
             </div>
-            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+            )}
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setOpenProfile(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setOpenProfile(false)}
+              >
                 Hủy
               </Button>
-              <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" disabled={submitting}>
+              <Button
+                type="submit"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={submitting}
+              >
                 {submitting ? "Đang lưu..." : "Lưu thay đổi"}
               </Button>
             </div>
@@ -292,7 +341,20 @@ export default function DashboardLayout() {
       </Dialog>
 
       {/* Modal đổi mật khẩu */}
-      <Dialog open={openPassword} onOpenChange={(open) => { setOpenPassword(open); if (!open) { setError(""); setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" }); } }}>
+      <Dialog
+        open={openPassword}
+        onOpenChange={(open) => {
+          setOpenPassword(open);
+          if (!open) {
+            setError("");
+            setPasswordForm({
+              currentPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            });
+          }
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle>Đổi mật khẩu</DialogTitle>
@@ -303,7 +365,12 @@ export default function DashboardLayout() {
               <Input
                 type="password"
                 value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    currentPassword: e.target.value,
+                  })
+                }
                 required
               />
             </div>
@@ -312,7 +379,12 @@ export default function DashboardLayout() {
               <Input
                 type="password"
                 value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    newPassword: e.target.value,
+                  })
+                }
                 required
               />
             </div>
@@ -321,16 +393,32 @@ export default function DashboardLayout() {
               <Input
                 type="password"
                 value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    confirmPassword: e.target.value,
+                  })
+                }
                 required
               />
             </div>
-            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+            )}
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setOpenPassword(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setOpenPassword(false)}
+              >
                 Hủy
               </Button>
-              <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" disabled={submitting}>
+              <Button
+                type="submit"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={submitting}
+              >
                 {submitting ? "Đang lưu..." : "Đổi mật khẩu"}
               </Button>
             </div>
